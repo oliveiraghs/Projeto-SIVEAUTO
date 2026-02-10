@@ -88,3 +88,57 @@ Critérios de aceitação implementados conforme a **Documentação Técnica (TD
     * É estritamente proibida a exclusão física de registos de histórico (Logs). Deve ser aplicado *Soft Delete* ou imutabilidade total.
 
 ---
+
+## 5. Dicionário de Dados (Detalhado)
+
+Especificação técnica das tabelas do banco de dados SQLite (`siveaut.db`), incluindo tipos de dados e restrições de integridade.
+
+### 5.1. Tabela: `usuarios`
+Responsável pelo controle de acesso e perfis de segurança.
+| Coluna | Tipo (SQLite) | Obrigatório | Descrição |
+| :--- | :--- | :---: | :--- |
+| `id` | INTEGER | **Sim** | Chave Primária (PK). Autoincremental. |
+| `nome` | TEXT | **Sim** | Nome completo do usuário. |
+| `email` | TEXT | **Sim** | Identificador único para login (Unique). |
+| `senha_hash` | TEXT | **Sim** | Senha criptografada (nunca salvar em texto plano). |
+| `perfil` | TEXT | **Sim** | Define permissões: `'ADMIN'` ou `'PESQUISADOR'`. |
+| `data_criacao` | DATETIME | Não | Data de cadastro do usuário. |
+
+### 5.2. Tabela: `veiculos`
+Catálogo de referência (baseado na Tabela FIPE) para padronizar as coletas.
+| Coluna | Tipo (SQLite) | Obrigatório | Descrição |
+| :--- | :--- | :---: | :--- |
+| `id` | INTEGER | **Sim** | Chave Primária (PK). Código FIPE ou interno. |
+| `marca` | TEXT | **Sim** | Fabricante (ex: Fiat, Honda). |
+| `modelo` | TEXT | **Sim** | Nome do modelo (ex: Uno Mille 1.0). |
+| `ano` | INTEGER | **Sim** | Ano de fabricação do veículo. |
+| `preco_referencia`| REAL | Não | Preço médio oficial (FIPE) para comparação. |
+
+### 5.3. Tabela: `lojas`
+Estabelecimentos parceiros onde as coletas de preço são realizadas.
+| Coluna | Tipo (SQLite) | Obrigatório | Descrição |
+| :--- | :--- | :---: | :--- |
+| `id` | INTEGER | **Sim** | Chave Primária (PK). |
+| `nome` | TEXT | **Sim** | Nome fantasia da loja. |
+| `endereco` | TEXT | Não | Localização física. |
+| `situacao` | TEXT | **Sim** | Status do cadastro: `'PENDENTE'`, `'APROVADA'`, `'REJEITADA'`. |
+
+### 5.4. Tabela: `cotacoes` (Transacional)
+Tabela Fato que registra o preço coletado em campo.
+| Coluna | Tipo (SQLite) | Obrigatório | Descrição |
+| :--- | :--- | :---: | :--- |
+| `id` | INTEGER | **Sim** | Chave Primária (PK). |
+| `valor` | REAL | **Sim** | Preço encontrado na loja (R$). |
+| `data_registro` | DATETIME | **Sim** | Data e hora exata da coleta. |
+| `id_usuario` | INTEGER | **Sim** | FK -> Tabela `usuarios` (Quem coletou). |
+| `id_veiculo` | INTEGER | **Sim** | FK -> Tabela `veiculos` (Qual carro). |
+| `id_loja` | INTEGER | **Sim** | FK -> Tabela `lojas` (Onde). |
+
+### 5.5. Tabela: `logs_busca` (Auditoria)
+Histórico imutável de consultas públicas realizadas no sistema.
+| Coluna | Tipo (SQLite) | Obrigatório | Descrição |
+| :--- | :--- | :---: | :--- |
+| `id` | INTEGER | **Sim** | Chave Primária (PK). |
+| `termo_busca` | TEXT | **Sim** | O que foi pesquisado (ex: "Fiat Uno"). |
+| `data_hora` | DATETIME | **Sim** | Carimbo de tempo da ação. |
+| `ip_origem` | TEXT | Não | Endereço IP do solicitante (para segurança). |
