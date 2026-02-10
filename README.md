@@ -1,7 +1,7 @@
-# SIVEAUT - Sistema de Cotação de Veículos
+# SIVEAUTO - Sistema de Cotação de Veículos
 
 ## 📄 Sobre o Projeto
-Sistema monolítico em **Python** para consulta e coleta de preços de veículos (FIPE), com módulos de administração e pesquisa de mercado.
+Sistema monolítico em **Python** para consulta e coleta de preços de veículos, com módulos de administração e pesquisa de mercado.
 
 ---
 
