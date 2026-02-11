@@ -10,42 +10,47 @@ class Veiculo:
 
     @staticmethod
     def get_todas_marcas():
-        """Retorna uma lista com todas as marcas cadastradas (sem repetir)"""
+        """Retorna marcas únicas"""
         conn = DatabaseService.get_connection()
         cursor = conn.cursor()
-        try:
-            cursor.execute("SELECT DISTINCT marca FROM veiculos ORDER BY marca")
-            # Transforma o resultado [(Fiat,), (Honda,)] em uma lista simples ['Fiat', 'Honda']
-            marcas = [row[0] for row in cursor.fetchall()]
-            return marcas
-        except Exception as e:
-            print(f"Erro ao buscar marcas: {e}")
-            return []
-        finally:
-            conn.close()
+        cursor.execute("SELECT DISTINCT marca FROM veiculos ORDER BY marca")
+        lista = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return lista
 
     @staticmethod
-    def buscar_por_filtro(marca, modelo=None, ano=None):
-        """Busca veículos baseados nos filtros preenchidos"""
+    def get_modelos_por_marca(marca):
+        """Retorna modelos apenas da marca selecionada"""
         conn = DatabaseService.get_connection()
         cursor = conn.cursor()
-        
-        query = "SELECT id, marca, modelo, ano, preco_referencia FROM veiculos WHERE marca = ?"
-        params = [marca]
+        cursor.execute("SELECT DISTINCT modelo FROM veiculos WHERE marca = ? ORDER BY modelo", (marca,))
+        lista = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return lista
 
-        if modelo:
-            query += " AND modelo LIKE ?"
-            params.append(f"%{modelo}%")
-        
-        if ano:
-            query += " AND ano = ?"
-            params.append(ano)
+    @staticmethod
+    def get_anos_por_modelo(modelo):
+        """Retorna anos apenas do modelo selecionado"""
+        conn = DatabaseService.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT ano FROM veiculos WHERE modelo = ? ORDER BY ano DESC", (modelo,))
+        lista = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return lista
 
-        try:
-            cursor.execute(query, params)
-            resultados = []
-            for row in cursor.fetchall():
-                resultados.append(Veiculo(row[0], row[1], row[2], row[3], row[4]))
-            return resultados
-        finally:
-            conn.close()
+    @staticmethod
+    def buscar_veiculo_exato(marca, modelo, ano):
+        """Busca o veículo final"""
+        conn = DatabaseService.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, marca, modelo, ano, preco_referencia 
+            FROM veiculos 
+            WHERE marca = ? AND modelo = ? AND ano = ?
+        """, (marca, modelo, ano))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return Veiculo(row[0], row[1], row[2], row[3], row[4])
+        return None
