@@ -12,37 +12,72 @@ class ResearcherView:
 
         inicial = usuario.nome[0].upper() if usuario.nome else "P"
 
-        # --- CONFIGURAÇÃO VISUAL (CSS) ---
-        st.markdown(f"""
+        # --- CONFIGURAÇÃO VISUAL (CSS PADRÃO) ---
+        st.markdown("""
             <style>
-                body {{ zoom: 0.75; overflow: hidden; }}
-                #MainMenu, footer, header {{ display: none !important; }}
-                .block-container {{ padding-top: 1rem !important; max-width: 100%; }}
-                
-                [data-testid="stSidebar"] {{ 
-                    background-color: #D3D3D3 !important; 
-                    min-width: 220px !important; 
-                }}
+                /* Remove margens padrão */
+                .block-container {
+                    padding-top: 1rem !important;
+                    padding-bottom: 0rem !important;
+                    max-width: 100% !important;
+                }
+                #MainMenu, header, footer { display: none !important; }
+                [data-testid="collapsedControl"] { display: none !important; }
 
-                .avatar-circle {{
+                /* Fundo Geral - Cinza Escuro */
+                [data-testid="stAppViewContainer"] {
+                    background-color: #C0C0C0 !important;
+                    overflow-x: hidden !important;
+                }
+
+                /* Zoom Fixo */
+                body { zoom: 0.75; }
+
+                /* --- SIDEBAR FIXA (ESQUERDA) --- */
+                [data-testid="stVerticalBlock"] > [style*="flex-direction: row"] > [data-testid="stColumn"]:first-child {
+                    background-color: #D3D3D3 !important;
+                    border-right: 1px solid #999;
+                    padding: 20px !important;
+                    min-height: 100vh !important;
+                    box-shadow: 2px 0 5px rgba(0,0,0,0.15);
+                }
+
+                /* Avatar */
+                .avatar-circle {
                     width: 70px; height: 70px; background-color: #FF8C00; color: white;
                     border-radius: 50%; text-align: center; line-height: 70px;
                     font-size: 28px; font-weight: bold; margin: 20px auto 10px auto;
                     border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                }}
+                }
 
-                /* Ajuste de formulários e botões */
-                .stSelectbox, .stNumberInput, .stTextInput {{ margin-bottom: -15px !important; }}
-                [data-testid="stForm"] {{ border: none !important; padding: 0 !important; }}
+                /* Botões Laterais */
+                .stButton button { 
+                    width: 100%; border-radius: 8px; font-weight: bold; 
+                    border: 1px solid #bbb;
+                }
+
+                /* Formulários Brancos */
+                div[data-testid="stForm"], div[data-testid="stVerticalBlock"] > [style*="flex-direction: column"] > div[data-testid="stVerticalBlock"] {
+                    background-color: #FFFFFF;
+                    border-radius: 12px;
+                    padding: 15px;
+                    /* border: 1px solid #aaa; removido para evitar bordas duplas em containers internos */
+                }
+                
+                /* Inputs compactos */
+                .stSelectbox, .stNumberInput, .stTextInput { margin-bottom: -15px !important; }
             </style>
         """, unsafe_allow_html=True)
 
-        # --- SIDEBAR ---
-        with st.sidebar:
+        # --- ESTRUTURA: SIDEBAR (1) | CONTEÚDO (5) ---
+        col_sidebar, col_content = st.columns([1, 5], gap="medium")
+
+        # --- SIDEBAR FIXA ---
+        with col_sidebar:
             st.markdown(f"<div class='avatar-circle'>{inicial}</div>", unsafe_allow_html=True)
-            st.markdown(f"<h3 style='text-align:center; color:#333; margin:0;'>{usuario.nome}</h3>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align:center; color:#666; font-size:0.9rem;'>PESQUISADOR</p>", unsafe_allow_html=True)
-            st.write("---")
+            st.markdown(f"<h3 style='text-align:center; margin:0;'>{usuario.nome}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:#555; font-size:0.9rem;'>PESQUISADOR</p>", unsafe_allow_html=True)
+            st.markdown("---")
             
             if st.button("📋 Nova Coleta", use_container_width=True):
                 st.session_state['aba_pesquisador'] = 'nova_coleta'
@@ -52,65 +87,69 @@ class ResearcherView:
                 st.session_state['aba_pesquisador'] = 'historico'
                 st.rerun()
             
-            st.markdown("<div style='height: 38vh;'></div>", unsafe_allow_html=True)
-            if st.button("🚪 Sair do Sistema", type="primary", use_container_width=True):
+            st.markdown("<br>"*10, unsafe_allow_html=True) # Espaçador inferior
+            if st.button("🚪 Sair", type="primary", use_container_width=True):
                 del st.session_state['usuario_ativo']
                 st.rerun()
 
-        # --- ROTEAMENTO ---
-        if st.session_state['aba_pesquisador'] == 'nova_coleta':
-            ResearcherView.render_formulario(usuario)
-        else:
-            ResearcherView.render_historico(usuario)
+        # --- CONTEÚDO PRINCIPAL ---
+        with col_content:
+            if st.session_state['aba_pesquisador'] == 'nova_coleta':
+                ResearcherView.render_formulario(usuario)
+            else:
+                ResearcherView.render_historico(usuario)
+
 
     @staticmethod
     def render_formulario(usuario):
-        st.subheader("📝 Registro de Preços")
-        _, col_centro, _ = st.columns([0.4, 3, 0.4])
+        st.markdown("### 📝 Registro de Preços")
+        
+        # Centraliza o formulário na área de conteúdo
+        _, col_centro, _ = st.columns([0.2, 4, 0.2])
 
         with col_centro:
             conn = DatabaseService.get_connection()
             try:
-                # Query atualizada para incluir VERSAO
+                # Query com Versão
                 df_v = pd.read_sql_query("SELECT id, marca, modelo, versao, ano FROM veiculos ORDER BY marca", conn)
                 
+                # Card Branco (Estilizado pelo CSS global ou container)
                 with st.container(border=True):
                     st.markdown("##### 🚗 Seleção do Veículo")
                     
-                    # Filtros em Cascata de 4 Níveis
+                    # Filtros em Cascata
                     c1, c2 = st.columns(2)
-                    marca = c1.selectbox("Marca:", options=sorted(df_v['marca'].unique()), index=None, placeholder="Selecione...")
+                    marcas = sorted(df_v['marca'].unique())
+                    marca = c1.selectbox("Marca:", options=marcas, index=None, placeholder="Selecione...")
                     
-                    modelo = None
+                    modelos = []
                     if marca:
-                        modelos_f = df_v[df_v['marca'] == marca]['modelo'].unique()
-                        modelo = c2.selectbox("Modelo:", options=sorted(modelos_f), index=None, placeholder="Selecione...")
+                        modelos = df_v[df_v['marca'] == marca]['modelo'].unique()
+                    modelo = c2.selectbox("Modelo:", options=sorted(modelos), index=None, placeholder="Selecione...", disabled=not marca)
 
                     c3, c4 = st.columns(2)
-                    versao = None
+                    versoes = []
                     if modelo:
-                        versoes_f = df_v[(df_v['marca'] == marca) & (df_v['modelo'] == modelo)]['versao'].unique()
-                        versao = c3.selectbox("Versão:", options=sorted(versoes_f), index=None, placeholder="Selecione...")
-                    else:
-                        c3.selectbox("Versão:", options=[], disabled=True, placeholder="Selecione o modelo")
+                        versoes = df_v[(df_v['marca'] == marca) & (df_v['modelo'] == modelo)]['versao'].unique()
+                    versao = c3.selectbox("Versão:", options=sorted(versoes), index=None, placeholder="Selecione...", disabled=not modelo)
 
                     v_id_sel = None
+                    anos = []
                     if versao:
-                        anos_f = df_v[(df_v['marca'] == marca) & (df_v['modelo'] == modelo) & (df_v['versao'] == versao)]['ano'].unique()
-                        ano_sel = c4.selectbox("Ano:", options=sorted(anos_f, reverse=True), index=None, placeholder="Ano...")
-                        
-                        if ano_sel:
-                            v_id_sel = df_v[
-                                (df_v['marca'] == marca) & 
-                                (df_v['modelo'] == modelo) & 
-                                (df_v['versao'] == versao) & 
-                                (df_v['ano'] == ano_sel)
-                            ]['id'].values[0]
-                    else:
-                        c4.selectbox("Ano:", options=[], disabled=True, placeholder="---")
+                        anos = df_v[(df_v['marca'] == marca) & (df_v['modelo'] == modelo) & (df_v['versao'] == versao)]['ano'].unique()
+                    ano_sel = c4.selectbox("Ano:", options=sorted(anos, reverse=True), index=None, placeholder="Ano...", disabled=not versao)
+                    
+                    if ano_sel:
+                         v_id_sel = df_v[
+                            (df_v['marca'] == marca) & 
+                            (df_v['modelo'] == modelo) & 
+                            (df_v['versao'] == versao) & 
+                            (df_v['ano'] == ano_sel)
+                        ]['id'].values[0]
 
                     st.markdown("---")
                     
+                    # Formulário de Coleta
                     with st.form("form_coleta", clear_on_submit=True):
                         st.markdown("##### 💰 Oferta Encontrada")
                         c_p, c_l = st.columns([1, 1.5])
@@ -126,9 +165,7 @@ class ResearcherView:
                         st.markdown("<br>", unsafe_allow_html=True)
                         if st.form_submit_button("🚀 GRAVAR COLETA", type="primary", use_container_width=True):
                             if v_id_sel and valor > 0 and loja:
-                                # EXECUÇÃO DA TRAVA PS-17
                                 sucesso, msg = ResearcherView.salvar_coleta(v_id_sel, usuario.id, valor, loja, link)
-                                
                                 if sucesso:
                                     st.success(msg)
                                     time.sleep(1.5)
@@ -136,58 +173,57 @@ class ResearcherView:
                                 else:
                                     st.warning(msg)
                             else:
-                                st.error("⚠️ Preencha os campos obrigatórios (Veículo, Valor e Loja).")
+                                st.error("⚠️ Preencha os campos obrigatórios.")
             finally:
                 conn.close()
 
     @staticmethod
     def render_historico(usuario):
-        st.subheader("🕒 Meu Histórico de Coletas")
+        st.markdown("### 🕒 Meu Histórico de Coletas")
         
-        conn = DatabaseService.get_connection()
-        try:
-            # Join atualizado para mostrar a Versão no histórico
-            query = """
-                SELECT c.id, v.marca, v.modelo, v.versao, v.ano, c.valor_encontrado, c.local_loja, c.data_coleta
-                FROM coletas c
-                JOIN veiculos v ON c.veiculo_id = v.id
-                WHERE c.usuario_id = ?
-                ORDER BY c.data_coleta DESC
-            """
-            df = pd.read_sql_query(query, conn, params=(usuario.id,))
-            
-            if df.empty:
-                st.info("Nenhuma coleta registrada até o momento.")
-            else:
-                # Cabeçalho da Tabela
-                h1, h2, h3, h4 = st.columns([2.5, 1, 1.5, 1])
-                h1.caption("**Veículo / Versão**")
-                h2.caption("**Valor**")
-                h3.caption("**Loja**")
-                h4.caption("**Data/Hora**")
-                st.markdown("---")
+        # Container Branco para a Tabela
+        with st.container(border=True):
+            conn = DatabaseService.get_connection()
+            try:
+                query = """
+                    SELECT c.id, v.marca, v.modelo, v.versao, v.ano, c.valor_encontrado, c.local_loja, c.data_coleta
+                    FROM coletas c
+                    JOIN veiculos v ON c.veiculo_id = v.id
+                    WHERE c.usuario_id = ?
+                    ORDER BY c.data_coleta DESC
+                """
+                df = pd.read_sql_query(query, conn, params=(usuario.id,))
+                
+                if df.empty:
+                    st.info("Nenhuma coleta registrada até o momento.")
+                else:
+                    h1, h2, h3, h4 = st.columns([2.5, 1, 1.5, 1])
+                    h1.caption("**Veículo / Versão**")
+                    h2.caption("**Valor**")
+                    h3.caption("**Loja**")
+                    h4.caption("**Data**")
+                    st.markdown("---")
 
-                for _, row in df.iterrows():
-                    c1, c2, c3, c4 = st.columns([2.5, 1, 1.5, 1])
-                    # Exibe Modelo + Versão + Ano
-                    c1.write(f"{row['marca']} {row['modelo']} {row['versao']} ({row['ano']})")
-                    
-                    valor_fmt = f"R$ {row['valor_encontrado']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                    c2.write(f"**{valor_fmt}**")
-                    c3.write(row['local_loja'])
-                    
-                    data_br = pd.to_datetime(row['data_coleta']).strftime('%d/%m %H:%M')
-                    c4.write(data_br)
-                    st.markdown("<hr style='margin: 2px 0; border-top: 1px solid #EEE;'>", unsafe_allow_html=True)
-        finally:
-            conn.close()
+                    for _, row in df.iterrows():
+                        c1, c2, c3, c4 = st.columns([2.5, 1, 1.5, 1])
+                        c1.write(f"{row['marca']} {row['modelo']} {row['versao']} ({row['ano']})")
+                        
+                        valor_fmt = f"R$ {row['valor_encontrado']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        c2.write(f"**{valor_fmt}**")
+                        c3.write(row['local_loja'])
+                        
+                        data_br = pd.to_datetime(row['data_coleta']).strftime('%d/%m %H:%M')
+                        c4.write(data_br)
+                        st.markdown("<hr style='margin: 2px 0; border-top: 1px solid #EEE;'>", unsafe_allow_html=True)
+            finally:
+                conn.close()
 
     @staticmethod
     def salvar_coleta(v_id, u_id, valor, loja, foto):
         conn = DatabaseService.get_connection()
         cursor = conn.cursor()
         
-        # --- LÓGICA DE TRAVA (PS-17) ---
+        # Trava PS-17 (Duplicidade no dia)
         cursor.execute("""
             SELECT id FROM coletas 
             WHERE veiculo_id = ? 
@@ -198,9 +234,8 @@ class ResearcherView:
         
         if cursor.fetchone():
             conn.close()
-            return False, "⚠️ Duplicidade detectada! Este veículo já foi coletado nesta loja hoje."
+            return False, "⚠️ Duplicidade! Este veículo já foi coletado nesta loja hoje."
         
-        # --- INSERÇÃO ---
         try:
             cursor.execute("""
                 INSERT INTO coletas (veiculo_id, usuario_id, valor_encontrado, local_loja, foto_url) 

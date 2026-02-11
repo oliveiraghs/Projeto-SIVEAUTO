@@ -4,227 +4,196 @@ import pandas as pd
 import hashlib
 import time
 
-# ⚠️ IMPORTANTE: Se este não for seu arquivo principal, mova este bloco 
-# st.set_page_config para a PRIMEIRA LINHA do seu arquivo main.py ou app.py
+# Configuração da página (Sempre a primeira linha)
 try:
-    st.set_page_config(
-        page_title="Admin System",
-        layout="wide",
-        initial_sidebar_state="expanded" # Isso obriga a sidebar a abrir
-    )
+    st.set_page_config(layout="wide", page_title="Admin System")
 except:
     pass
 
 class AdminView:
     @staticmethod
     def render(usuario):
-        # 1. Gerenciamento de Navegação e Estados
+        # 1. ESTADO DA NAVEGAÇÃO
         if 'admin_aba' not in st.session_state:
             st.session_state['admin_aba'] = 'Usuarios'
-        
         if 'user_to_edit' not in st.session_state:
             st.session_state['user_to_edit'] = None
 
         nome_display = usuario.nome if usuario and usuario.nome else "Admin"
         inicial = nome_display[0].upper()
 
-        # --- CSS FORTE PARA RECUPERAR A SIDEBAR ---
-        st.markdown(f"""
+        # 2. CSS GLOBAL
+        st.markdown("""
             <style>
-                /* 1. FUNDO CINZA MAIS ESCURO (Conforme pedido) */
-                [data-testid="stAppViewContainer"] {{
-                    background-color: #C0C0C0 !important; /* Cinza mais forte */
-                }}
+                /* Remove margens e oculta elementos padrão */
+                .block-container { padding: 1rem !important; max-width: 100%; }
+                #MainMenu, header, footer { display: none !important; }
+                [data-testid="collapsedControl"] { display: none !important; }
                 
-                /* 2. CORREÇÃO DO BODY (Removendo Zoom que quebra sidebar) */
-                body {{ 
-                    overflow: auto !important; 
-                    /* zoom: 1.0 !important; Garantir zoom normal */
-                }}
-                
-                #MainMenu, footer, header {{ display: none !important; }}
-                .block-container {{ padding-top: 1.5rem !important; max-width: 100%; }}
-                
-                /* 3. FORÇAR A SIDEBAR A APARECER (CSS "Nuclear") */
-                section[data-testid="stSidebar"] {{ 
-                    background-color: #D3D3D3 !important; /* Cinza Sidebar */
-                    display: block !important;
-                    visibility: visible !important;
-                    width: 300px !important;
-                    z-index: 99999 !important; /* Força ficar por cima de tudo */
-                    position: fixed !important; /* Força posição fixa na esquerda */
-                    left: 0 !important;
-                    top: 0 !important;
-                    height: 100vh !important;
-                }}
+                /* Cor de fundo e Zoom */
+                [data-testid="stAppViewContainer"] { background-color: #C0C0C0 !important; }
+                body { zoom: 0.75; overflow-x: hidden; }
 
-                /* Ajusta o conteúdo principal para não ficar "embaixo" da sidebar fixa */
-                [data-testid="stSidebar"] + section {{
-                    margin-left: 300px !important; 
-                }}
-                
-                /* Estilo do Avatar */
-                .avatar-circle {{
-                    width: 70px; height: 70px; background-color: #FF8C00; color: white;
-                    border-radius: 50%; text-align: center; line-height: 70px; font-size: 28px;
-                    font-weight: bold; margin: 20px auto 10px auto; border: 3px solid white;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                }}
+                /* SIDEBAR (Coluna Esquerda) */
+                [data-testid="stVerticalBlock"] > [style*="flex-direction: row"] > [data-testid="stColumn"]:first-child {
+                    background-color: #D3D3D3 !important;
+                    border-right: 1px solid #999;
+                    padding: 20px !important;
+                    min-height: 100vh !important; /* Altura total */
+                    box-shadow: 2px 0 5px rgba(0,0,0,0.15);
+                }
 
-                /* Cards dos Formulários */
-                [data-testid="stForm"] {{ 
-                    background-color: #FFFFFF; 
-                    border-radius: 15px; 
-                    border: 1px solid #999; 
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.15); 
-                }}
+                /* Avatar e Botões */
+                .avatar-circle {
+                    width: 80px; height: 80px; background-color: #FF8C00; color: white;
+                    border-radius: 50%; text-align: center; line-height: 80px; font-size: 32px;
+                    font-weight: bold; margin: 0 auto 15px auto; border: 4px solid white;
+                }
+                .stButton button { width: 100%; border-radius: 8px; font-weight: 600; border: 1px solid #bbb; }
                 
-                .stTextInput, .stSelectbox, .stNumberInput {{ margin-bottom: -15px !important; }}
-                .stButton button {{ border-radius: 8px; font-weight: bold; }}
+                /* Cards (Formulários) */
+                [data-testid="stForm"] {
+                    background-color: #FFFFFF; border-radius: 12px;
+                    padding: 20px; border: 1px solid #aaa;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                }
             </style>
         """, unsafe_allow_html=True)
 
-        # --- SIDEBAR (Conteúdo) ---
-        # Usamos st.sidebar normalmente, mas o CSS acima garante a posição
-        with st.sidebar:
+        # 3. LAYOUT (Sidebar Falsa + Conteúdo)
+        col_sidebar, col_content = st.columns([1, 5], gap="small")
+
+        with col_sidebar:
             st.markdown(f"<div class='avatar-circle'>{inicial}</div>", unsafe_allow_html=True)
-            st.markdown(f"<h3 style='text-align:center;'>{nome_display}</h3>", unsafe_allow_html=True)
-            st.write("---")
+            st.markdown(f"<h3 style='text-align:center; margin:0;'>{nome_display}</h3>", unsafe_allow_html=True)
+            st.markdown("---")
             
-            # Botões
-            if st.button("🏠 Dashboard", key="btn_d", use_container_width=True): 
+            if st.button("🏠 Dashboard", key="nav_d", use_container_width=True):
                 st.session_state['admin_aba'] = 'Dashboard'; st.rerun()
-            if st.button("👥 Usuários", key="btn_u", use_container_width=True): 
+            if st.button("👥 Usuários", key="nav_u", use_container_width=True):
                 st.session_state['admin_aba'] = 'Usuarios'; st.rerun()
-            if st.button("🚗 Veículos", key="btn_v", use_container_width=True): 
+            if st.button("🚗 Veículos", key="nav_v", use_container_width=True):
                 st.session_state['admin_aba'] = 'Veiculos'; st.rerun()
             
-            st.markdown("<div style='height: 35vh;'></div>", unsafe_allow_html=True)
-            if st.button("🚪 Sair", key="btn_s", type="primary", use_container_width=True):
-                st.session_state.clear() 
-                st.rerun()
+            st.markdown("<br>"*5, unsafe_allow_html=True)
+            if st.button("🚪 Sair", key="nav_s", type="primary", use_container_width=True):
+                st.session_state.clear(); st.rerun()
 
-        # --- ROTEAMENTO ---
-        aba = st.session_state['admin_aba']
-        if aba == 'Usuarios':
-            AdminView.render_usuarios()
-        elif aba == 'Veiculos':
-            AdminView.render_veiculos()
-        else:
-            st.markdown("### 🏠 Dashboard")
-            st.info("Área de Dashboard - Em desenvolvimento")
+        with col_content:
+            aba = st.session_state['admin_aba']
+            if aba == 'Usuarios':
+                AdminView.render_usuarios()
+            elif aba == 'Veiculos':
+                AdminView.render_veiculos()
+            else:
+                st.markdown("### 🏠 Dashboard")
+                try:
+                    conn = DatabaseService.get_connection()
+                    k1, k2, k3 = st.columns(3)
+                    tu = pd.read_sql("SELECT count(*) as c FROM usuarios", conn).iloc[0]['c']
+                    tv = pd.read_sql("SELECT count(*) as c FROM veiculos", conn).iloc[0]['c']
+                    k1.metric("Usuários", tu); k2.metric("Veículos", tv); k3.metric("Status", "OK")
+                    conn.close()
+                except: pass
 
     @staticmethod
     def render_usuarios():
-        st.markdown("### 👥 Gestão de Usuários")
-        col_lista, col_form = st.columns([2, 1.2])
-
-        with col_lista:
-            conn = DatabaseService.get_connection()
+        st.markdown("### 👥 Usuários")
+        c1, c2 = st.columns([2, 1.2])
+        
+        # Lista
+        with c1:
             try:
+                conn = DatabaseService.get_connection()
                 df = pd.read_sql_query("SELECT id, nome, email, perfil FROM usuarios ORDER BY id DESC", conn)
-                
-                # Cabeçalho da tabela
-                h1, h2, h3, h4 = st.columns([0.5, 2, 2, 1.2])
-                h1.caption("**ID**"); h2.caption("**Nome**"); h3.caption("**E-mail**"); h4.caption("**Ações**")
-                st.markdown("---")
+                h1, h2, h3, h4 = st.columns([0.5, 1.5, 2, 1])
+                h1.caption("ID"); h2.caption("Nome"); h3.caption("Email"); h4.caption("Ação")
+                st.markdown("<hr style='margin:5px 0; border-top:1px solid #999'>", unsafe_allow_html=True)
 
                 for _, row in df.iterrows():
-                    c1, c2, c3, c4 = st.columns([0.5, 2, 2, 1.2])
-                    c1.write(f"#{row['id']}")
-                    c2.write(row['nome'])
-                    c3.write(row['email'])
-                    
-                    b1, b2 = c4.columns(2)
-                    if b1.button("✏️", key=f"be_{row['id']}"):
-                        st.session_state['user_to_edit'] = row.to_dict()
-                        st.rerun() 
-                    if b2.button("🗑️", key=f"bd_{row['id']}"):
-                        AdminView.excluir_usuario(row['id'])
-                        st.rerun()
-                    st.markdown("<hr style='margin: 5px 0; opacity: 0.2;'>", unsafe_allow_html=True)
-            except Exception as e:
-                st.error(f"Erro: {e}")
-            finally:
+                    l1, l2, l3, l4 = st.columns([0.5, 1.5, 2, 1])
+                    l1.write(f"#{row['id']}")
+                    l2.write(row['nome'])
+                    l3.write(row['email'])
+                    b1, b2 = l4.columns(2)
+                    if b1.button("✏️", key=f"e_{row['id']}"):
+                        st.session_state['user_to_edit'] = row.to_dict(); st.rerun()
+                    if b2.button("🗑️", key=f"d_{row['id']}"):
+                        AdminView.excluir_usuario(row['id']); st.rerun()
+                    st.markdown("<hr style='margin:2px 0; opacity:0.2'>", unsafe_allow_html=True)
                 conn.close()
+            except: pass
 
-        with col_form:
-            user_data = st.session_state['user_to_edit']
-            is_editing = user_data is not None
+        # Formulário
+        with c2:
+            data = st.session_state['user_to_edit']
+            is_edit = data is not None
+            tit = "Editar" if is_edit else "Novo"
             
-            default_nome = user_data['nome'] if is_editing else ""
-            default_email = user_data['email'] if is_editing else ""
-            default_perfil = user_data['perfil'] if is_editing else "PESQUISADOR"
-            
-            titulo = "📝 Editar" if is_editing else "➕ Novo"
-            
-            with st.form("form_users", clear_on_submit=not is_editing):
-                st.markdown(f"#### {titulo}")
-                nn = st.text_input("Nome:", value=default_nome)
-                ne = st.text_input("E-mail:", value=default_email)
-                ns = st.text_input("Senha:", type="password", placeholder="Nova senha" if is_editing else "Senha")
+            with st.form("frm_user", clear_on_submit=not is_edit):
+                st.write(f"#### {tit}")
+                n = st.text_input("Nome", value=data['nome'] if is_edit else "")
+                e = st.text_input("Email", value=data['email'] if is_edit else "")
+                s = st.text_input("Senha", type="password", placeholder="Vazio = manter" if is_edit else "")
+                opts = ["ADMIN", "GERENTE", "COORDENADOR", "LOJISTA", "PESQUISADOR"]
+                p = st.selectbox("Perfil", opts, index=opts.index(data['perfil']) if is_edit and data['perfil'] in opts else 4)
                 
-                l_perfis = ["ADMIN", "GERENTE", "COORDENADOR", "LOJISTA", "PESQUISADOR"]
-                idx_p = l_perfis.index(default_perfil) if default_perfil in l_perfis else 4
-                np = st.selectbox("Perfil:", options=l_perfis, index=idx_p)
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                if is_editing:
-                    c1, c2 = st.columns(2)
-                    if c1.form_submit_button("Salvar", type="primary", use_container_width=True):
-                        AdminView.atualizar_usuario(user_data['id'], nn, ne, ns, np)
-                        st.session_state['user_to_edit'] = None 
-                        st.success("Ok!"); time.sleep(0.5); st.rerun()
-                    if c2.form_submit_button("Voltar", use_container_width=True):
-                        st.session_state['user_to_edit'] = None; st.rerun()
-                else:
-                    if st.form_submit_button("Cadastrar", type="primary", use_container_width=True):
-                        if nn and ne and ns:
-                            AdminView.salvar_usuario(nn, ne, ns, np)
-                            st.success("Criado!"); time.sleep(0.5); st.rerun()
-                        else:
-                            st.error("Preencha tudo.")
+                c_ok, c_canc = st.columns(2)
+                if c_ok.form_submit_button("Salvar", type="primary", use_container_width=True):
+                    if is_edit:
+                        AdminView.atualizar_usuario(data['id'], n, e, s, p)
+                        st.session_state['user_to_edit'] = None
+                    else:
+                        if n and e and s: AdminView.salvar_usuario(n, e, s, p)
+                    st.rerun()
+                if is_edit and c_canc.form_submit_button("Cancelar", use_container_width=True):
+                    st.session_state['user_to_edit'] = None; st.rerun()
 
     @staticmethod
     def render_veiculos():
-        st.markdown("### 🚗 Gestão de Veículos")
-        col_list, col_form = st.columns([1.8, 1])
-        conn = DatabaseService.get_connection()
+        st.markdown("### 🚗 Veículos")
+        c1, c2 = st.columns([2, 1])
         try:
-            with col_list:
+            conn = DatabaseService.get_connection()
+            with c1:
                 df = pd.read_sql_query("SELECT id, marca, modelo, versao, ano, preco_referencia FROM veiculos ORDER BY id DESC", conn)
                 st.dataframe(df, use_container_width=True, hide_index=True)
-            with col_form:
-                with st.form("fv", clear_on_submit=True):
-                    st.markdown("#### Adicionar")
+            with c2:
+                with st.form("frm_veic", clear_on_submit=True):
+                    st.write("#### Adicionar")
                     ma = st.text_input("Marca"); mo = st.text_input("Modelo"); ve = st.text_input("Versão")
-                    an = st.number_input("Ano", value=2024); pr = st.number_input("Preço")
-                    if st.form_submit_button("Salvar", use_container_width=True):
+                    an = st.number_input("Ano", value=2024); pr = st.number_input("Preço", value=0.0)
+                    if st.form_submit_button("Salvar", type="primary", use_container_width=True):
                         conn.execute("INSERT INTO veiculos (marca, modelo, versao, ano, preco_referencia) VALUES (?,?,?,?,?)", (ma,mo,ve,an,pr))
                         conn.commit(); st.rerun()
-        except Exception as e: st.error(str(e))
-        finally: conn.close()
+            conn.close()
+        except: pass
 
     @staticmethod
     def salvar_usuario(n, e, s, p):
-        h = hashlib.sha256(s.encode()).hexdigest()
-        conn = DatabaseService.get_connection()
-        conn.execute("INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES (?,?,?,?)", (n,e,h,p))
-        conn.commit(); conn.close()
-
-    @staticmethod
-    def atualizar_usuario(id_u, n, e, s, p):
-        conn = DatabaseService.get_connection()
-        if s: 
+        try:
             h = hashlib.sha256(s.encode()).hexdigest()
-            conn.execute("UPDATE usuarios SET nome=?, email=?, senha_hash=?, perfil=? WHERE id=?", (n,e,h,p,id_u))
-        else: 
-            conn.execute("UPDATE usuarios SET nome=?, email=?, perfil=? WHERE id=?", (n,e,p,id_u))
-        conn.commit(); conn.close()
+            c = DatabaseService.get_connection()
+            c.execute("INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES (?,?,?,?)", (n,e,h,p))
+            c.commit(); c.close()
+        except: pass
 
     @staticmethod
-    def excluir_usuario(id_u):
-        conn = DatabaseService.get_connection()
-        conn.execute("DELETE FROM usuarios WHERE id=?", (id_u,))
-        conn.commit(); conn.close()
+    def atualizar_usuario(id, n, e, s, p):
+        try:
+            c = DatabaseService.get_connection()
+            if s: 
+                h = hashlib.sha256(s.encode()).hexdigest()
+                c.execute("UPDATE usuarios SET nome=?, email=?, senha_hash=?, perfil=? WHERE id=?", (n,e,h,p,id))
+            else: 
+                c.execute("UPDATE usuarios SET nome=?, email=?, perfil=? WHERE id=?", (n,e,p,id))
+            c.commit(); c.close()
+        except: pass
+
+    @staticmethod
+    def excluir_usuario(id):
+        try:
+            c = DatabaseService.get_connection()
+            c.execute("DELETE FROM usuarios WHERE id=?", (id,))
+            c.commit(); c.close()
+        except: pass

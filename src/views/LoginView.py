@@ -8,170 +8,188 @@ import random
 class LoginView:
     @staticmethod
     def render():
-        # --- CSS "ZERO SCROLL" (Mantido Estável) ---
+        # --- CSS GERAL E LAYOUT (Zoom 0.75) ---
         st.markdown("""
             <style>
-                /* 1. FORÇA BRUTA: Esconder a barra de rolagem visualmente */
-                ::-webkit-scrollbar { display: none !important; }
-                
-                /* 2. Travar a rolagem no container principal do Streamlit */
-                [data-testid="stAppViewContainer"] { overflow: hidden !important; }
-                
-                /* 3. Remover espaços mortos do cabeçalho e rodapé */
-                header, footer, #MainMenu { display: none !important; height: 0 !important; }
-                
-                /* 4. Ajuste do Zoom e Espaçamento */
-                body { zoom: 0.75; }
-                
-                /* Zera o padding inferior que causa o espaço branco */
+                /* Remove margens padrão */
                 .block-container {
-                    padding-top: 2rem !important;
+                    padding-top: 1rem !important;
                     padding-bottom: 0rem !important;
-                    max-width: 1100px;
+                    max-width: 100% !important;
+                }
+                #MainMenu, header, footer { display: none !important; }
+                [data-testid="collapsedControl"] { display: none !important; }
+                
+                /* Fundo da Área Principal (Direita) - Cinza Escuro */
+                [data-testid="stAppViewContainer"] {
+                    background-color: #C0C0C0 !important; 
+                    overflow-x: hidden !important;
                 }
 
-                /* 5. Título Principal */
-                .header-container {
-                    display: flex; align-items: center; justify-content: center; margin-bottom: 10px;
-                }
-                .header-icon { font-size: 3rem; margin-right: 15px; }
-                .header-title h1 { color: #0F52BA; margin: 0; font-size: 2.5rem; line-height: 1.2; }
-                .header-title p { color: #666; margin: 0; font-size: 1rem; }
+                /* ZOOM FIXO */
+                body { zoom: 0.75; }
 
-                /* 6. Estilo dos Cartões */
-                div[data-testid="column"] > div {
-                    padding: 20px !important; border-radius: 12px;
+                /* --- SIDEBAR FIXA (ESQUERDA) - Onde ficará o LOGIN --- */
+                [data-testid="stVerticalBlock"] > [style*="flex-direction: row"] > [data-testid="stColumn"]:first-child {
+                    background-color: #D3D3D3 !important; /* Cinza Claro */
+                    border-right: 1px solid #999;
+                    padding: 25px !important;
+                    min-height: 100vh !important;
+                    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+                }
+
+                /* Título Principal (SIVEAUTO) na Área Central */
+                .main-title {
+                    text-align: center; color: #0F52BA; font-size: 4rem; font-weight: bold; margin-bottom: 0;
+                    text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+                }
+                .main-subtitle {
+                    text-align: center; color: #333; font-size: 1.2rem; margin-bottom: 40px;
+                }
+
+                /* Cards (Formulários) */
+                div[data-testid="stForm"] {
+                    background-color: white;
+                    border-radius: 10px;
+                    padding: 20px;
+                    border: 1px solid #bbb;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
                 }
                 
-                /* Cores de Fundo */
-                div[data-testid="column"]:nth-of-type(1) > div {
-                    background-color: white; border: 1px solid #ddd; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-                }
-                div[data-testid="column"]:nth-of-type(3) > div {
-                    background-color: #f8f9fa; border: 1px solid #e0e0e0;
-                }
-
-                /* 7. Inputs e Botões */
-                .stTextInput, .stSelectbox { margin-bottom: -15px !important; }
-                div[data-testid="stMarkdownContainer"] h3 { font-size: 1.3rem !important; margin-bottom: 10px !important; }
+                /* Botões */
+                .stButton button { width: 100%; height: 45px; border-radius: 8px; font-weight: bold; }
                 
-                button { height: 42px !important; margin-top: 10px !important; }
-
-                /* Cores dos Botões */
-                div[data-testid="column"]:nth-of-type(1) button {
-                    background-color: #0F52BA !important; color: white !important; border: none !important;
+                /* Botão Login (Azul) */
+                div[data-testid="stColumn"]:first-child button {
+                    background-color: #0F52BA !important; color: white !important;
                 }
-                div[data-testid="column"]:nth-of-type(3) button {
-                    background-color: #28a745 !important; color: white !important; border: none !important;
+                
+                /* Botão Busca (Verde) */
+                div[data-testid="stColumn"]:last-child button {
+                    background-color: #28a745 !important; color: white !important;
                 }
 
-                /* 8. Resultado Compacto e HTML Seguro */
+                /* Inputs compactos */
+                .stTextInput, .stSelectbox { margin-bottom: -10px !important; }
+                
+                /* Resultado da Busca */
                 .result-card {
                     background-color: #fff3cd; border-left: 6px solid #ffc107;
-                    padding: 12px 15px; margin-top: 15px; border-radius: 8px; font-size: 0.95rem;
+                    padding: 15px; margin-top: 20px; border-radius: 8px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
                 }
                 .price-tag {
-                    color: #28a745; font-weight: bold; font-size: 1.4rem; float: right; 
+                    color: #28a745; font-weight: bold; font-size: 1.8rem; float: right; 
                 }
             </style>
         """, unsafe_allow_html=True)
 
-        # --- CABEÇALHO ---
-        st.markdown("""
-            <div class="header-container">
-                <div class="header-icon">🚗</div>
-                <div class="header-title">
-                    <h1>SIVEAUTO</h1>
-                    <p>Sistema Integrado de Auditoria e Cotação</p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # --- ESTRUTURA: SIDEBAR (1) | CONTEÚDO (4) ---
+        col_sidebar, col_content = st.columns([1.2, 4], gap="large")
 
-        col_login, col_gap, col_busca = st.columns([1, 0.1, 1.3])
-
-        # --- LOGIN (Esquerda - Mantido Original) ---
-        with col_login:
-            st.markdown("<h3>🔐 Acesso Restrito</h3>", unsafe_allow_html=True)
-            st.caption("Área exclusiva para gestão")
+        # --- 1. SIDEBAR (ÁREA DE LOGIN) ---
+        with col_sidebar:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align:center; color:#333;'>🔐 Acesso Restrito</h2>", unsafe_allow_html=True)
+            st.caption("Faça login para acessar o painel administrativo.")
             
-            email = st.text_input("Usuário:", placeholder="admin@siveauto.com")
-            senha = st.text_input("Senha:", type="password", placeholder="••••••")
-            
-            if st.button("ENTRAR", use_container_width=True):
-                if not email or not senha:
-                    st.warning("Preencha os campos.")
-                else:
-                    usuario = AuthController.validar_login(email, senha)
-                    if usuario:
-                        st.session_state['usuario_ativo'] = usuario
-                        st.rerun()
+            with st.form("login_form"):
+                email = st.text_input("Usuário", placeholder="admin@siveauto.com")
+                st.markdown("<br>", unsafe_allow_html=True)
+                senha = st.text_input("Senha", type="password", placeholder="••••••")
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                submitted = st.form_submit_button("ENTRAR ACESSO")
+                if submitted:
+                    if not email or not senha:
+                        st.warning("Preencha todos os campos.")
                     else:
-                        st.error("Inválido.")
+                        usuario = AuthController.validar_login(email, senha)
+                        if usuario:
+                            st.session_state['usuario_ativo'] = usuario
+                            st.rerun()
+                        else:
+                            st.error("Dados inválidos.")
+            
+            st.markdown("<br>"*5, unsafe_allow_html=True)
+            st.info("Caso não tenha acesso, utilize a busca ao lado para consultas públicas.")
 
-        # --- BUSCA (Direita - Atualizado com Versão) ---
-        with col_busca:
-            st.markdown("<h3>🔎 Pesquisa de Mercado</h3>", unsafe_allow_html=True)
+        # --- 2. CONTEÚDO PRINCIPAL (BUSCA PÚBLICA) ---
+        with col_content:
+            # Espaçador superior para centralizar verticalmente
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            # Conexão direta para garantir filtros dinâmicos rápidos
-            conn = DatabaseService.get_connection()
-            # Carregamos apenas o necessário para os combos
-            df = pd.read_sql_query("SELECT marca, modelo, versao, ano, preco_referencia FROM veiculos", conn)
-            conn.close()
-            
-            # 1. Filtro Marca
-            marcas = sorted(df['marca'].unique())
-            marca = st.selectbox("Marca:", options=marcas, index=None, placeholder="Selecione...")
-            
-            # 2. Filtro Modelo (Depende da Marca)
-            modelos = []
-            if marca:
-                modelos = sorted(df[df['marca'] == marca]['modelo'].unique())
-            modelo = st.selectbox("Modelo:", options=modelos, index=None, placeholder="Selecione...", disabled=not marca)
-            
-            # 3. Filtro Versão (Depende do Modelo) --> NOVO CAMPO
-            versoes = []
-            if modelo:
-                versoes = sorted(df[(df['marca'] == marca) & (df['modelo'] == modelo)]['versao'].unique())
-            versao = st.selectbox("Versão:", options=versoes, index=None, placeholder="Selecione...", disabled=not modelo)
+            # Título SIVEAUTO Gigante
+            st.markdown("""
+                <div class="main-title">🚗 SIVEAUTO</div>
+                <div class="main-subtitle">Sistema Integrado de Auditoria e Cotação Veicular</div>
+            """, unsafe_allow_html=True)
 
-            # 4. Filtro Ano (Depende da Versão)
-            anos = []
-            if versao:
-                anos = sorted(df[(df['marca'] == marca) & (df['modelo'] == modelo) & (df['versao'] == versao)]['ano'].unique())
-            ano = st.selectbox("Ano:", options=anos, index=None, placeholder="Selecione...", disabled=not versao)
-
-            # Botão
-            buscar = st.button("BUSCAR VEÍCULO 🔍", use_container_width=True)
+            # Centralizar o formulário de busca usando colunas internas
+            c_left, c_form_busca, c_right = st.columns([1, 4, 1])
             
-            # Resultado
-            if buscar:
-                if not ano:
-                    st.warning("Selecione todos os dados (Marca, Modelo, Versão e Ano).")
-                else:
-                    # Busca exata no DataFrame filtrado
-                    resultado = df[
-                        (df['marca'] == marca) & 
-                        (df['modelo'] == modelo) & 
-                        (df['versao'] == versao) & 
-                        (df['ano'] == ano)
-                    ]
+            with c_form_busca:
+                st.markdown("### 🔎 Pesquisa Rápida de Mercado")
+                
+                conn = DatabaseService.get_connection()
+                try:
+                    df = pd.read_sql_query("SELECT marca, modelo, versao, ano, preco_referencia FROM veiculos", conn)
                     
-                    if not resultado.empty:
-                        row = resultado.iloc[0]
-                        preco = row['preco_referencia']
-                        local = random.choice(["Loja Matriz - SP", "Filial Campinas", "AutoCenter Sul"])
+                    # Container Branco para a Busca
+                    with st.container(border=True):
+                        # Filtros lado a lado para economizar espaço vertical
+                        f1, f2 = st.columns(2)
+                        with f1:
+                            marcas = sorted(df['marca'].unique())
+                            marca = st.selectbox("Marca", options=marcas, index=None, placeholder="Selecione...")
+                            
+                            versao_opts = sorted(df[(df['marca'] == marca) & (df['modelo'] == modelo)]['versao'].unique()) if 'modelo' in locals() and modelo else []
+                            # Ajuste lógico para filtros
                         
-                        # Formatação de Moeda Visual
-                        preco_fmt = f"R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        # Recalculando filtros corretamente
+                        modelos = sorted(df[df['marca'] == marca]['modelo'].unique()) if marca else []
                         
-                        st.markdown(f"""
-                            <div class="result-card">
-                                <span class="price-tag">{preco_fmt}</span>
-                                <div style="font-weight:bold; color:#333;">✅ {row['marca']} {row['modelo']}</div>
-                                <div style="margin-top:2px; font-size:0.9rem; color:#555;">Versão: {row['versao']}</div>
-                                <div style="margin-top:2px;">📅 Ano: {row['ano']}</div>
-                                <div style="margin-top:2px; font-size:0.85rem;">📍 Local: <b>{local}</b></div>
-                            </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.error("Veículo não encontrado na base de referência.")
+                        with f2:
+                            modelo = st.selectbox("Modelo", options=modelos, index=None, disabled=not marca, placeholder="...")
+                        
+                        f3, f4 = st.columns(2)
+                        with f3:
+                            versoes = sorted(df[(df['marca'] == marca) & (df['modelo'] == modelo)]['versao'].unique()) if modelo else []
+                            versao = st.selectbox("Versão", options=versoes, index=None, disabled=not modelo, placeholder="...")
+                        
+                        with f4:
+                            anos = sorted(df[(df['marca'] == marca) & (df['modelo'] == modelo) & (df['versao'] == versao)]['ano'].unique()) if versao else []
+                            ano = st.selectbox("Ano", options=anos, index=None, disabled=not versao, placeholder="...")
+
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        buscar = st.button("🔍 CONSULTAR PREÇO DE REFERÊNCIA", use_container_width=True)
+
+                    # Resultado
+                    if buscar:
+                        if not ano:
+                            st.warning("Por favor, selecione todos os filtros acima.")
+                        else:
+                            res = df[(df['marca']==marca) & (df['modelo']==modelo) & (df['versao']==versao) & (df['ano']==ano)]
+                            
+                            if not res.empty:
+                                row = res.iloc[0]
+                                preco = row['preco_referencia']
+                                local = random.choice(["Matriz São Paulo", "Filial Campinas", "Unidade Sul"])
+                                preco_fmt = f"R$ {preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                                
+                                st.markdown(f"""
+                                    <div class="result-card">
+                                        <span class="price-tag">{preco_fmt}</span>
+                                        <h3 style="margin:0; color:#333;">✅ {row['marca']} {row['modelo']}</h3>
+                                        <p style="margin:5px 0; color:#555;">{row['versao']} - {row['ano']}</p>
+                                        <hr style="margin:10px 0; border-top:1px solid #e0c070;">
+                                        <small>📍 Disponível para auditoria em: <b>{local}</b></small>
+                                    </div>
+                                """, unsafe_allow_html=True)
+                            else:
+                                st.error("Veículo não encontrado na base.")
+
+                except Exception as e:
+                    st.error(f"Erro de conexão: {e}")
+                finally:
+                    conn.close()
