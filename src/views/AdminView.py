@@ -1,5 +1,6 @@
 import streamlit as st
 from src.services.DatabaseService import DatabaseService
+from src.controllers.ColetaController import ColetaController # NOVA IMPORTAÇÃO
 import pandas as pd
 import hashlib
 import time
@@ -45,7 +46,7 @@ class AdminView:
                     margin-bottom: 10px;
                 }
 
-                /* CORREÇÃO DE INPUTS (VACINA DARK MODE) */
+                /* CORREÇÃO DE INPUTS */
                 div[data-baseweb="input"] > div, div[data-baseweb="base-input"], div[data-baseweb="select"] > div {
                     background-color: #FFFFFF !important; border-color: #CCCCCC !important; color: #333 !important;
                 }
@@ -58,7 +59,7 @@ class AdminView:
 
         col_sidebar, col_content = st.columns([1, 5], gap="small")
 
-        # --- BARRA LATERAL (MENU ATUALIZADO COM DEMANDAS) ---
+        # --- BARRA LATERAL ---
         with col_sidebar:
             st.markdown(f"<div class='avatar-circle'>{inicial}</div>", unsafe_allow_html=True)
             st.markdown(f"<h3 style='text-align:center; margin:0; color:#333;'>{nome_display}</h3>", unsafe_allow_html=True)
@@ -81,17 +82,16 @@ class AdminView:
             if aba == 'Usuarios': AdminView.render_usuarios()
             elif aba == 'Veiculos': AdminView.render_veiculos()
             elif aba == 'Lojas': AdminView.render_lojas()
-            elif aba == 'Coletas': AdminView.render_coletas()
+            elif aba == 'Coletas': AdminView.render_coletas() # ALTERADO AQUI
             elif aba == 'Demandas': AdminView.render_demandas()
             else: AdminView.render_dashboard()
 
-    # --- 1. DASHBOARD (VALIDADO 4.5) ---
+    # --- 1. DASHBOARD ---
     @staticmethod
     def render_dashboard():
         st.markdown("### 📊 Dashboard de Auditoria e Mercado")
         conn = DatabaseService.get_connection()
         try:
-            # KPIS
             with st.container(border=True):
                 k1, k2, k3, k4 = st.columns(4)
                 k1.metric("Usuários", pd.read_sql("SELECT count(*) as c FROM usuarios", conn).iloc[0]['c'])
@@ -99,7 +99,6 @@ class AdminView:
                 k3.metric("Lojas Ativas", pd.read_sql("SELECT count(*) as c FROM lojas WHERE status='APROVADA'", conn).iloc[0]['c'])
                 k4.metric("Coletas Realizadas", pd.read_sql("SELECT count(*) as c FROM coletas", conn).iloc[0]['c'])
             
-            # GRÁFICOS (4 Cards)
             c1, c2 = st.columns(2)
             with c1:
                 with st.container(border=True):
@@ -125,36 +124,32 @@ class AdminView:
                     st.write("**👥 Perfis de Usuário**")
                     df_u = pd.read_sql("SELECT perfil, count(*) as total FROM usuarios GROUP BY perfil", conn)
                     if not df_u.empty: st.bar_chart(df_u.set_index('perfil'))
-        finally:
-            conn.close()
+        finally: conn.close()
 
-    # --- 2. DEMANDAS (NOVA ABA - JIRA PS-9) ---
+    # --- 2. DEMANDAS ---
     @staticmethod
     def render_demandas():
         st.markdown("### 🔍 Inteligência de Mercado (Demandas)")
         conn = DatabaseService.get_connection()
         try:
             df_full = pd.read_sql("SELECT data_busca, marca_buscada, modelo_buscado, versao_buscada, ano_buscado FROM buscas ORDER BY id DESC", conn)
-            
             c1, c2 = st.columns([2, 1])
             with c1:
                 with st.container(border=True):
                     st.write("**🏆 Veículos Mais Buscados**")
                     df_chart = pd.read_sql("SELECT marca_buscada || ' ' || modelo_buscado as veiculo, count(*) as total FROM buscas GROUP BY veiculo ORDER BY total DESC LIMIT 10", conn)
                     if not df_chart.empty: st.bar_chart(df_chart.set_index('veiculo'))
-                    else: st.info("Sem buscas registradas.")
+                    else: st.info("Sem buscas.")
             with c2:
                 with st.container(border=True):
                     st.metric("Total de Buscas", len(df_full))
                     st.markdown("---")
-                    # Tópico 6: Botão de Exportação
                     st.download_button("📥 Baixar CSV", df_full.to_csv(index=False).encode('utf-8'), "demandas.csv", "text/csv", use_container_width=True)
-
             st.markdown("#### Histórico Recente")
             st.dataframe(df_full, use_container_width=True, hide_index=True)
         finally: conn.close()
 
-    # --- 3. USUÁRIOS (VALIDADO) ---
+    # --- 3. USUÁRIOS ---
     @staticmethod
     def render_usuarios():
         st.markdown("### 👥 Gestão de Usuários")
@@ -172,7 +167,6 @@ class AdminView:
                     btn_ed, btn_del = l5.columns(2)
                     if btn_ed.button("✏️", key=f"ed_u_{row['id']}"): st.session_state['user_to_edit'] = row.to_dict(); st.rerun()
                     if btn_del.button("🗑️", key=f"del_u_{row['id']}"): conn.execute("DELETE FROM usuarios WHERE id=?", (row['id'],)); conn.commit(); st.rerun()
-                st.markdown("<hr style='margin:5px 0; opacity:0.1;'>", unsafe_allow_html=True)
             conn.close()
         with c2:
             data = st.session_state['user_to_edit']
@@ -189,7 +183,7 @@ class AdminView:
                     conn.commit(); conn.close(); st.session_state['user_to_edit'] = None; st.rerun()
                 if is_edit and st.form_submit_button("Cancelar"): st.session_state['user_to_edit'] = None; st.rerun()
 
-    # --- 4. VEÍCULOS (VALIDADO) ---
+    # --- 4. VEÍCULOS ---
     @staticmethod
     def render_veiculos():
         st.markdown("### 🚗 Base de Veículos (Catálogo)")
@@ -207,7 +201,6 @@ class AdminView:
                     btn_ed, btn_del = l6.columns(2)
                     if btn_ed.button("✏️", key=f"ed_v_{row['id']}"): st.session_state['veiculo_to_edit'] = row.to_dict(); st.rerun()
                     if btn_del.button("🗑️", key=f"del_v_{row['id']}"): conn.execute("DELETE FROM veiculos WHERE id=?", (row['id'],)); conn.commit(); st.rerun()
-                st.markdown("<hr style='margin:5px 0; opacity:0.1;'>", unsafe_allow_html=True)
             conn.close()
         with c2:
             data = st.session_state['veiculo_to_edit']
@@ -222,7 +215,7 @@ class AdminView:
                     conn.commit(); conn.close(); st.session_state['veiculo_to_edit'] = None; st.rerun()
                 if is_edit and st.form_submit_button("Cancelar"): st.session_state['veiculo_to_edit'] = None; st.rerun()
 
-    # --- 5. LOJAS (VALIDADO) ---
+    # --- 5. LOJAS ---
     @staticmethod
     def render_lojas():
         st.markdown("### 🏪 Gestão da Rede de Lojas")
@@ -240,7 +233,6 @@ class AdminView:
                     btn_ed, btn_del = l4.columns(2)
                     if btn_ed.button("✏️", key=f"ed_l_{row['id']}"): st.session_state['loja_to_edit'] = row.to_dict(); st.rerun()
                     if btn_del.button("🗑️", key=f"del_l_{row['id']}"): conn.execute("DELETE FROM lojas WHERE id=?", (row['id'],)); conn.commit(); st.rerun()
-                st.markdown("<hr style='margin:5px 0; opacity:0.1;'>", unsafe_allow_html=True)
             conn.close()
         with c2:
             data = st.session_state['loja_to_edit']
@@ -254,18 +246,30 @@ class AdminView:
                     conn.commit(); conn.close(); st.session_state['loja_to_edit'] = None; st.rerun()
                 if is_edit and st.form_submit_button("Cancelar"): st.session_state['loja_to_edit'] = None; st.rerun()
 
-    # --- 6. MONITORAMENTO (VALIDADO + EXPORTAÇÃO) ---
+    # --- 6. MONITORAMENTO (COM AUDITORIA VISUAL DE OUTLIERS) ---
     @staticmethod
     def render_coletas():
-        st.markdown("### 📊 Monitoramento Global de Mercado")
-        conn = DatabaseService.get_connection()
-        query = "SELECT c.id, u.nome as pesquisador, v.marca, v.modelo, v.versao, c.local_loja, c.valor_encontrado, c.data_coleta FROM coletas c JOIN veiculos v ON c.veiculo_id = v.id JOIN usuarios u ON c.usuario_id = u.id ORDER BY c.id DESC"
-        df = pd.read_sql(query, conn)
+        st.markdown("### 📊 Monitoramento de Coletas (Auditoria)")
         
-        # Tópico 6: Botão de Exportação para Excel/CSV
+        # Chama a lógica inteligente do Controller em vez da query bruta
+        df = ColetaController.buscar_coletas_com_auditoria()
+        
         col_top, col_down = st.columns([4, 1])
         with col_down:
-            st.download_button("📥 Baixar CSV", df.to_csv(index=False).encode('utf-8'), "coletas.csv", "text/csv", use_container_width=True)
+            st.download_button("📥 Exportar CSV", df.to_csv(index=False).encode('utf-8'), "coletas_auditor.csv", "text/csv", use_container_width=True)
+        
+        if not df.empty and 'is_outlier' in df.columns:
+            # Lógica de Visualização: Pinta de vermelho claro se for outlier
+            def highlight_outliers(row):
+                if row['is_outlier']:
+                    return ['background-color: #ffcccc; color: #900'] * len(row)
+                return [''] * len(row)
             
-        st.dataframe(df, use_container_width=True, hide_index=True)
-        conn.close()
+            st.dataframe(df.style.apply(highlight_outliers, axis=1), use_container_width=True, hide_index=True)
+            
+            # KPI de Alerta
+            total_outliers = df['is_outlier'].sum()
+            if total_outliers > 0:
+                st.error(f"⚠️ Atenção: {total_outliers} coletas detectadas com desvio de preço suspeito (Linhas vermelhas). Verifique!")
+        else:
+            st.dataframe(df, use_container_width=True, hide_index=True)
