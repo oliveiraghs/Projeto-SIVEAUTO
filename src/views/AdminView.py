@@ -4,46 +4,33 @@ import pandas as pd
 import hashlib
 import time
 
-# Configuração da página (Sempre a primeira linha)
-try:
-    st.set_page_config(layout="wide", page_title="Admin System")
-except:
-    pass
-
 class AdminView:
     @staticmethod
     def render(usuario):
         # 1. ESTADO DA NAVEGAÇÃO
-        if 'admin_aba' not in st.session_state:
-            st.session_state['admin_aba'] = 'Usuarios'
-        if 'user_to_edit' not in st.session_state:
-            st.session_state['user_to_edit'] = None
+        if 'admin_aba' not in st.session_state: st.session_state['admin_aba'] = 'Dashboard'
+        if 'user_to_edit' not in st.session_state: st.session_state['user_to_edit'] = None
+        if 'veiculo_to_edit' not in st.session_state: st.session_state['veiculo_to_edit'] = None
+        if 'loja_to_edit' not in st.session_state: st.session_state['loja_to_edit'] = None
 
         nome_display = usuario.nome if usuario and usuario.nome else "Admin"
         inicial = nome_display[0].upper()
 
-        # 2. CSS GLOBAL
+        # 2. CSS GLOBAL PADRONIZADO (Preservando Zoom 0.75 e Sidebar)
         st.markdown("""
             <style>
-                /* Remove margens e oculta elementos padrão */
-                .block-container { padding: 1rem !important; max-width: 100%; }
+                .block-container { padding: 1rem !important; max-width: 100% !important; }
                 #MainMenu, header, footer { display: none !important; }
                 [data-testid="collapsedControl"] { display: none !important; }
-                
-                /* Cor de fundo e Zoom */
                 [data-testid="stAppViewContainer"] { background-color: #C0C0C0 !important; }
                 body { zoom: 0.75; overflow-x: hidden; }
 
-                /* SIDEBAR (Coluna Esquerda) */
+                /* SIDEBAR */
                 [data-testid="stVerticalBlock"] > [style*="flex-direction: row"] > [data-testid="stColumn"]:first-child {
-                    background-color: #D3D3D3 !important;
-                    border-right: 1px solid #999;
-                    padding: 20px !important;
-                    min-height: 100vh !important; /* Altura total */
+                    background-color: #D3D3D3 !important; border-right: 1px solid #999;
+                    padding: 20px !important; min-height: 100vh !important;
                     box-shadow: 2px 0 5px rgba(0,0,0,0.15);
                 }
-
-                /* Avatar e Botões */
                 .avatar-circle {
                     width: 80px; height: 80px; background-color: #FF8C00; color: white;
                     border-radius: 50%; text-align: center; line-height: 80px; font-size: 32px;
@@ -51,149 +38,234 @@ class AdminView:
                 }
                 .stButton button { width: 100%; border-radius: 8px; font-weight: 600; border: 1px solid #bbb; }
                 
-                /* Cards (Formulários) */
-                [data-testid="stForm"] {
-                    background-color: #FFFFFF; border-radius: 12px;
-                    padding: 20px; border: 1px solid #aaa;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                /* CARDS E FORMULÁRIOS */
+                [data-testid="stForm"], .row-card {
+                    background-color: #FFFFFF; border-radius: 12px; padding: 20px;
+                    border: 1px solid #aaa; box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                    margin-bottom: 10px;
                 }
+
+                /* CORREÇÃO DE INPUTS (VACINA DARK MODE) */
+                div[data-baseweb="input"] > div, div[data-baseweb="base-input"], div[data-baseweb="select"] > div {
+                    background-color: #FFFFFF !important; border-color: #CCCCCC !important; color: #333 !important;
+                }
+                input, div[data-baseweb="select"] span, .stMarkdown label, p { color: #333 !important; }
+                
+                /* Tabelas Manuais */
+                .table-header { font-weight: bold; color: #333; padding-bottom: 10px; border-bottom: 2px solid #999; margin-bottom: 15px; }
             </style>
         """, unsafe_allow_html=True)
 
-        # 3. LAYOUT (Sidebar Falsa + Conteúdo)
         col_sidebar, col_content = st.columns([1, 5], gap="small")
 
+        # --- BARRA LATERAL (MENU ATUALIZADO COM DEMANDAS) ---
         with col_sidebar:
             st.markdown(f"<div class='avatar-circle'>{inicial}</div>", unsafe_allow_html=True)
-            st.markdown(f"<h3 style='text-align:center; margin:0;'>{nome_display}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<h3 style='text-align:center; margin:0; color:#333;'>{nome_display}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:#555; font-size:0.8rem;'>SUPER ADMIN</p>", unsafe_allow_html=True)
             st.markdown("---")
             
-            if st.button("🏠 Dashboard", key="nav_d", use_container_width=True):
-                st.session_state['admin_aba'] = 'Dashboard'; st.rerun()
-            if st.button("👥 Usuários", key="nav_u", use_container_width=True):
-                st.session_state['admin_aba'] = 'Usuarios'; st.rerun()
-            if st.button("🚗 Veículos", key="nav_v", use_container_width=True):
-                st.session_state['admin_aba'] = 'Veiculos'; st.rerun()
+            if st.button("🏠 Dashboard", use_container_width=True): st.session_state['admin_aba'] = 'Dashboard'; st.rerun()
+            if st.button("🔍 Demandas (Buscas)", use_container_width=True): st.session_state['admin_aba'] = 'Demandas'; st.rerun()
+            if st.button("👥 Usuários", use_container_width=True): st.session_state['admin_aba'] = 'Usuarios'; st.rerun()
+            if st.button("🚗 Veículos", use_container_width=True): st.session_state['admin_aba'] = 'Veiculos'; st.rerun()
+            if st.button("🏪 Lojas", use_container_width=True): st.session_state['admin_aba'] = 'Lojas'; st.rerun()
+            if st.button("📊 Monitoramento", use_container_width=True): st.session_state['admin_aba'] = 'Coletas'; st.rerun()
             
             st.markdown("<br>"*5, unsafe_allow_html=True)
-            if st.button("🚪 Sair", key="nav_s", type="primary", use_container_width=True):
-                st.session_state.clear(); st.rerun()
+            if st.button("🚪 Sair", type="primary", use_container_width=True): st.session_state.clear(); st.rerun()
 
+        # --- ÁREA CENTRAL DE CONTEÚDO ---
         with col_content:
             aba = st.session_state['admin_aba']
-            if aba == 'Usuarios':
-                AdminView.render_usuarios()
-            elif aba == 'Veiculos':
-                AdminView.render_veiculos()
-            else:
-                st.markdown("### 🏠 Dashboard")
-                try:
-                    conn = DatabaseService.get_connection()
-                    k1, k2, k3 = st.columns(3)
-                    tu = pd.read_sql("SELECT count(*) as c FROM usuarios", conn).iloc[0]['c']
-                    tv = pd.read_sql("SELECT count(*) as c FROM veiculos", conn).iloc[0]['c']
-                    k1.metric("Usuários", tu); k2.metric("Veículos", tv); k3.metric("Status", "OK")
-                    conn.close()
-                except: pass
+            if aba == 'Usuarios': AdminView.render_usuarios()
+            elif aba == 'Veiculos': AdminView.render_veiculos()
+            elif aba == 'Lojas': AdminView.render_lojas()
+            elif aba == 'Coletas': AdminView.render_coletas()
+            elif aba == 'Demandas': AdminView.render_demandas()
+            else: AdminView.render_dashboard()
 
+    # --- 1. DASHBOARD (VALIDADO 4.5) ---
+    @staticmethod
+    def render_dashboard():
+        st.markdown("### 📊 Dashboard de Auditoria e Mercado")
+        conn = DatabaseService.get_connection()
+        try:
+            # KPIS
+            with st.container(border=True):
+                k1, k2, k3, k4 = st.columns(4)
+                k1.metric("Usuários", pd.read_sql("SELECT count(*) as c FROM usuarios", conn).iloc[0]['c'])
+                k2.metric("Base Veículos", pd.read_sql("SELECT count(*) as c FROM veiculos", conn).iloc[0]['c'])
+                k3.metric("Lojas Ativas", pd.read_sql("SELECT count(*) as c FROM lojas WHERE status='APROVADA'", conn).iloc[0]['c'])
+                k4.metric("Coletas Realizadas", pd.read_sql("SELECT count(*) as c FROM coletas", conn).iloc[0]['c'])
+            
+            # GRÁFICOS (4 Cards)
+            c1, c2 = st.columns(2)
+            with c1:
+                with st.container(border=True):
+                    st.write("**💰 Preço Médio por Marca**")
+                    df_p = pd.read_sql("SELECT v.marca, AVG(c.valor_encontrado) as preco FROM coletas c JOIN veiculos v ON c.veiculo_id = v.id GROUP BY v.marca", conn)
+                    if not df_p.empty: st.bar_chart(df_p.set_index('marca'))
+                    else: st.info("Sem dados.")
+            with c2:
+                with st.container(border=True):
+                    st.write("**📍 Engajamento por Loja**")
+                    df_l = pd.read_sql("SELECT local_loja, count(*) as total FROM coletas GROUP BY local_loja", conn)
+                    if not df_l.empty: st.bar_chart(df_l.set_index('local_loja'))
+                    else: st.info("Sem dados.")
+
+            c3, c4 = st.columns(2)
+            with c3:
+                with st.container(border=True):
+                    st.write("**🚗 Mix de Veículos**")
+                    df_m = pd.read_sql("SELECT marca, count(*) as total FROM veiculos GROUP BY marca", conn)
+                    if not df_m.empty: st.bar_chart(df_m.set_index('marca'))
+            with c4:
+                with st.container(border=True):
+                    st.write("**👥 Perfis de Usuário**")
+                    df_u = pd.read_sql("SELECT perfil, count(*) as total FROM usuarios GROUP BY perfil", conn)
+                    if not df_u.empty: st.bar_chart(df_u.set_index('perfil'))
+        finally:
+            conn.close()
+
+    # --- 2. DEMANDAS (NOVA ABA - JIRA PS-9) ---
+    @staticmethod
+    def render_demandas():
+        st.markdown("### 🔍 Inteligência de Mercado (Demandas)")
+        conn = DatabaseService.get_connection()
+        try:
+            df_full = pd.read_sql("SELECT data_busca, marca_buscada, modelo_buscado, versao_buscada, ano_buscado FROM buscas ORDER BY id DESC", conn)
+            
+            c1, c2 = st.columns([2, 1])
+            with c1:
+                with st.container(border=True):
+                    st.write("**🏆 Veículos Mais Buscados**")
+                    df_chart = pd.read_sql("SELECT marca_buscada || ' ' || modelo_buscado as veiculo, count(*) as total FROM buscas GROUP BY veiculo ORDER BY total DESC LIMIT 10", conn)
+                    if not df_chart.empty: st.bar_chart(df_chart.set_index('veiculo'))
+                    else: st.info("Sem buscas registradas.")
+            with c2:
+                with st.container(border=True):
+                    st.metric("Total de Buscas", len(df_full))
+                    st.markdown("---")
+                    # Tópico 6: Botão de Exportação
+                    st.download_button("📥 Baixar CSV", df_full.to_csv(index=False).encode('utf-8'), "demandas.csv", "text/csv", use_container_width=True)
+
+            st.markdown("#### Histórico Recente")
+            st.dataframe(df_full, use_container_width=True, hide_index=True)
+        finally: conn.close()
+
+    # --- 3. USUÁRIOS (VALIDADO) ---
     @staticmethod
     def render_usuarios():
-        st.markdown("### 👥 Usuários")
-        c1, c2 = st.columns([2, 1.2])
-        
-        # Lista
+        st.markdown("### 👥 Gestão de Usuários")
+        c1, c2 = st.columns([2.5, 1.2])
         with c1:
-            try:
-                conn = DatabaseService.get_connection()
-                df = pd.read_sql_query("SELECT id, nome, email, perfil FROM usuarios ORDER BY id DESC", conn)
-                h1, h2, h3, h4 = st.columns([0.5, 1.5, 2, 1])
-                h1.caption("ID"); h2.caption("Nome"); h3.caption("Email"); h4.caption("Ação")
-                st.markdown("<hr style='margin:5px 0; border-top:1px solid #999'>", unsafe_allow_html=True)
-
-                for _, row in df.iterrows():
-                    l1, l2, l3, l4 = st.columns([0.5, 1.5, 2, 1])
-                    l1.write(f"#{row['id']}")
-                    l2.write(row['nome'])
-                    l3.write(row['email'])
-                    b1, b2 = l4.columns(2)
-                    if b1.button("✏️", key=f"e_{row['id']}"):
-                        st.session_state['user_to_edit'] = row.to_dict(); st.rerun()
-                    if b2.button("🗑️", key=f"d_{row['id']}"):
-                        AdminView.excluir_usuario(row['id']); st.rerun()
-                    st.markdown("<hr style='margin:2px 0; opacity:0.2'>", unsafe_allow_html=True)
-                conn.close()
-            except: pass
-
-        # Formulário
+            conn = DatabaseService.get_connection()
+            df = pd.read_sql("SELECT id, nome, email, perfil FROM usuarios ORDER BY id DESC", conn)
+            h1, h2, h3, h4, h5 = st.columns([0.4, 1.2, 1.8, 1.0, 0.8])
+            h1.markdown("**ID**"); h2.markdown("**Nome**"); h3.markdown("**Email**"); h4.markdown("**Perfil**"); h5.markdown("**Ações**")
+            st.markdown("<hr style='margin:0 0 15px 0;'>", unsafe_allow_html=True)
+            for _, row in df.iterrows():
+                with st.container():
+                    l1, l2, l3, l4, l5 = st.columns([0.4, 1.2, 1.8, 1.0, 0.8])
+                    l1.write(f"#{row['id']}"); l2.write(row['nome']); l3.write(row['email']); l4.write(f"`{row['perfil']}`")
+                    btn_ed, btn_del = l5.columns(2)
+                    if btn_ed.button("✏️", key=f"ed_u_{row['id']}"): st.session_state['user_to_edit'] = row.to_dict(); st.rerun()
+                    if btn_del.button("🗑️", key=f"del_u_{row['id']}"): conn.execute("DELETE FROM usuarios WHERE id=?", (row['id'],)); conn.commit(); st.rerun()
+                st.markdown("<hr style='margin:5px 0; opacity:0.1;'>", unsafe_allow_html=True)
+            conn.close()
         with c2:
             data = st.session_state['user_to_edit']
             is_edit = data is not None
-            tit = "Editar" if is_edit else "Novo"
-            
-            with st.form("frm_user", clear_on_submit=not is_edit):
-                st.write(f"#### {tit}")
-                n = st.text_input("Nome", value=data['nome'] if is_edit else "")
-                e = st.text_input("Email", value=data['email'] if is_edit else "")
-                s = st.text_input("Senha", type="password", placeholder="Vazio = manter" if is_edit else "")
-                opts = ["ADMIN", "GERENTE", "COORDENADOR", "LOJISTA", "PESQUISADOR"]
-                p = st.selectbox("Perfil", opts, index=opts.index(data['perfil']) if is_edit and data['perfil'] in opts else 4)
-                
-                c_ok, c_canc = st.columns(2)
-                if c_ok.form_submit_button("Salvar", type="primary", use_container_width=True):
+            with st.form("frm_user", clear_on_submit=True):
+                st.write(f"#### {'Editar' if is_edit else 'Novo'} Usuário")
+                n = st.text_input("Nome", value=data['nome'] if is_edit else ""); e = st.text_input("Email", value=data['email'] if is_edit else ""); s = st.text_input("Senha", type="password", placeholder="Vazio = manter atual"); p = st.selectbox("Perfil", ["ADMIN", "GERENTE", "COORDENADOR", "LOJISTA", "PESQUISADOR"], index=0)
+                if st.form_submit_button("Salvar Registro", type="primary"):
+                    conn = DatabaseService.get_connection()
                     if is_edit:
-                        AdminView.atualizar_usuario(data['id'], n, e, s, p)
-                        st.session_state['user_to_edit'] = None
-                    else:
-                        if n and e and s: AdminView.salvar_usuario(n, e, s, p)
-                    st.rerun()
-                if is_edit and c_canc.form_submit_button("Cancelar", use_container_width=True):
-                    st.session_state['user_to_edit'] = None; st.rerun()
+                        if s: h = hashlib.sha256(s.encode()).hexdigest(); conn.execute("UPDATE usuarios SET nome=?, email=?, senha_hash=?, perfil=? WHERE id=?", (n,e,h,p,data['id']))
+                        else: conn.execute("UPDATE usuarios SET nome=?, email=?, perfil=? WHERE id=?", (n,e,p,data['id']))
+                    else: h = hashlib.sha256(s.encode()).hexdigest(); conn.execute("INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES (?,?,?,?)", (n,e,h,p))
+                    conn.commit(); conn.close(); st.session_state['user_to_edit'] = None; st.rerun()
+                if is_edit and st.form_submit_button("Cancelar"): st.session_state['user_to_edit'] = None; st.rerun()
 
+    # --- 4. VEÍCULOS (VALIDADO) ---
     @staticmethod
     def render_veiculos():
-        st.markdown("### 🚗 Veículos")
-        c1, c2 = st.columns([2, 1])
-        try:
+        st.markdown("### 🚗 Base de Veículos (Catálogo)")
+        c1, c2 = st.columns([2.5, 1.2])
+        with c1:
             conn = DatabaseService.get_connection()
-            with c1:
-                df = pd.read_sql_query("SELECT id, marca, modelo, versao, ano, preco_referencia FROM veiculos ORDER BY id DESC", conn)
-                st.dataframe(df, use_container_width=True, hide_index=True)
-            with c2:
-                with st.form("frm_veic", clear_on_submit=True):
-                    st.write("#### Adicionar")
-                    ma = st.text_input("Marca"); mo = st.text_input("Modelo"); ve = st.text_input("Versão")
-                    an = st.number_input("Ano", value=2024); pr = st.number_input("Preço", value=0.0)
-                    if st.form_submit_button("Salvar", type="primary", use_container_width=True):
-                        conn.execute("INSERT INTO veiculos (marca, modelo, versao, ano, preco_referencia) VALUES (?,?,?,?,?)", (ma,mo,ve,an,pr))
-                        conn.commit(); st.rerun()
+            df = pd.read_sql("SELECT id, marca, modelo, versao, ano FROM veiculos ORDER BY id DESC", conn)
+            h1, h2, h3, h4, h5, h6 = st.columns([0.4, 0.8, 1.0, 1.5, 0.6, 0.8])
+            h1.markdown("**ID**"); h2.markdown("**Marca**"); h3.markdown("**Modelo**"); h4.markdown("**Versão**"); h5.markdown("**Ano**"); h6.markdown("**Ações**")
+            st.markdown("<hr style='margin:0 0 10px 0;'>", unsafe_allow_html=True)
+            for _, row in df.iterrows():
+                with st.container():
+                    l1, l2, l3, l4, l5, l6 = st.columns([0.4, 0.8, 1.0, 1.5, 0.6, 0.8])
+                    l1.write(f"#{row['id']}"); l2.write(row['marca']); l3.write(row['modelo']); l4.write(row['versao']); l5.write(str(row['ano']))
+                    btn_ed, btn_del = l6.columns(2)
+                    if btn_ed.button("✏️", key=f"ed_v_{row['id']}"): st.session_state['veiculo_to_edit'] = row.to_dict(); st.rerun()
+                    if btn_del.button("🗑️", key=f"del_v_{row['id']}"): conn.execute("DELETE FROM veiculos WHERE id=?", (row['id'],)); conn.commit(); st.rerun()
+                st.markdown("<hr style='margin:5px 0; opacity:0.1;'>", unsafe_allow_html=True)
             conn.close()
-        except: pass
+        with c2:
+            data = st.session_state['veiculo_to_edit']
+            is_edit = data is not None
+            with st.form("frm_veic", clear_on_submit=True):
+                st.write(f"#### {'Editar' if is_edit else 'Novo'} Veículo")
+                ma = st.text_input("Marca", value=data['marca'] if is_edit else ""); mo = st.text_input("Modelo", value=data['modelo'] if is_edit else ""); ve = st.text_input("Versão", value=data['versao'] if is_edit else ""); an = st.number_input("Ano", value=int(data['ano']) if is_edit else 2024, step=1)
+                if st.form_submit_button("Salvar no Catálogo", type="primary"):
+                    conn = DatabaseService.get_connection()
+                    if is_edit: conn.execute("UPDATE veiculos SET marca=?, modelo=?, versao=?, ano=? WHERE id=?", (ma,mo,ve,an,data['id']))
+                    else: conn.execute("INSERT INTO veiculos (marca, modelo, versao, ano) VALUES (?,?,?,?)", (ma,mo,ve,an))
+                    conn.commit(); conn.close(); st.session_state['veiculo_to_edit'] = None; st.rerun()
+                if is_edit and st.form_submit_button("Cancelar"): st.session_state['veiculo_to_edit'] = None; st.rerun()
 
+    # --- 5. LOJAS (VALIDADO) ---
     @staticmethod
-    def salvar_usuario(n, e, s, p):
-        try:
-            h = hashlib.sha256(s.encode()).hexdigest()
-            c = DatabaseService.get_connection()
-            c.execute("INSERT INTO usuarios (nome, email, senha_hash, perfil) VALUES (?,?,?,?)", (n,e,h,p))
-            c.commit(); c.close()
-        except: pass
+    def render_lojas():
+        st.markdown("### 🏪 Gestão da Rede de Lojas")
+        c1, c2 = st.columns([2.5, 1.2])
+        with c1:
+            conn = DatabaseService.get_connection()
+            df = pd.read_sql("SELECT id, nome, endereco, status FROM lojas ORDER BY id DESC", conn)
+            h1, h2, h3, h4 = st.columns([1.5, 1.8, 1.0, 0.8])
+            h1.markdown("**Nome**"); h2.markdown("**Endereço**"); h3.markdown("**Status**"); h4.markdown("**Ações**")
+            st.markdown("<hr style='margin:0 0 10px 0;'>", unsafe_allow_html=True)
+            for _, row in df.iterrows():
+                with st.container():
+                    l1, l2, l3, l4 = st.columns([1.5, 1.8, 1.0, 0.8])
+                    l1.write(row['nome']); l2.write(row['endereco']); l3.write(f"`{row['status']}`")
+                    btn_ed, btn_del = l4.columns(2)
+                    if btn_ed.button("✏️", key=f"ed_l_{row['id']}"): st.session_state['loja_to_edit'] = row.to_dict(); st.rerun()
+                    if btn_del.button("🗑️", key=f"del_l_{row['id']}"): conn.execute("DELETE FROM lojas WHERE id=?", (row['id'],)); conn.commit(); st.rerun()
+                st.markdown("<hr style='margin:5px 0; opacity:0.1;'>", unsafe_allow_html=True)
+            conn.close()
+        with c2:
+            data = st.session_state['loja_to_edit']
+            is_edit = data is not None
+            with st.form("frm_loja", clear_on_submit=True):
+                st.write(f"#### {'Editar' if is_edit else 'Novo'} Loja"); nome = st.text_input("Nome", value=data['nome'] if is_edit else ""); end = st.text_input("Endereço", value=data['endereco'] if is_edit else ""); stt = st.selectbox("Status", ["APROVADA", "PENDENTE", "REJEITADA"], index=0)
+                if st.form_submit_button("Salvar Loja", type="primary"):
+                    conn = DatabaseService.get_connection()
+                    if is_edit: conn.execute("UPDATE lojas SET nome=?, endereco=?, status=? WHERE id=?", (nome,end,stt,data['id']))
+                    else: conn.execute("INSERT INTO lojas (nome, endereco, status) VALUES (?,?,?)", (nome,end,stt))
+                    conn.commit(); conn.close(); st.session_state['loja_to_edit'] = None; st.rerun()
+                if is_edit and st.form_submit_button("Cancelar"): st.session_state['loja_to_edit'] = None; st.rerun()
 
+    # --- 6. MONITORAMENTO (VALIDADO + EXPORTAÇÃO) ---
     @staticmethod
-    def atualizar_usuario(id, n, e, s, p):
-        try:
-            c = DatabaseService.get_connection()
-            if s: 
-                h = hashlib.sha256(s.encode()).hexdigest()
-                c.execute("UPDATE usuarios SET nome=?, email=?, senha_hash=?, perfil=? WHERE id=?", (n,e,h,p,id))
-            else: 
-                c.execute("UPDATE usuarios SET nome=?, email=?, perfil=? WHERE id=?", (n,e,p,id))
-            c.commit(); c.close()
-        except: pass
-
-    @staticmethod
-    def excluir_usuario(id):
-        try:
-            c = DatabaseService.get_connection()
-            c.execute("DELETE FROM usuarios WHERE id=?", (id,))
-            c.commit(); c.close()
-        except: pass
+    def render_coletas():
+        st.markdown("### 📊 Monitoramento Global de Mercado")
+        conn = DatabaseService.get_connection()
+        query = "SELECT c.id, u.nome as pesquisador, v.marca, v.modelo, v.versao, c.local_loja, c.valor_encontrado, c.data_coleta FROM coletas c JOIN veiculos v ON c.veiculo_id = v.id JOIN usuarios u ON c.usuario_id = u.id ORDER BY c.id DESC"
+        df = pd.read_sql(query, conn)
+        
+        # Tópico 6: Botão de Exportação para Excel/CSV
+        col_top, col_down = st.columns([4, 1])
+        with col_down:
+            st.download_button("📥 Baixar CSV", df.to_csv(index=False).encode('utf-8'), "coletas.csv", "text/csv", use_container_width=True)
+            
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        conn.close()

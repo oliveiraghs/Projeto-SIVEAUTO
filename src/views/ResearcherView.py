@@ -6,244 +6,144 @@ import time
 class ResearcherView:
     @staticmethod
     def render(usuario):
-        # Controle de navegação interna
+        # 1. CONTROLE DE NAVEGAÇÃO E ESTADO
         if 'aba_pesquisador' not in st.session_state:
             st.session_state['aba_pesquisador'] = 'nova_coleta'
 
-        inicial = usuario.nome[0].upper() if usuario.nome else "P"
+        # Nome e inicial para o Avatar
+        nome_exibicao = usuario.nome if usuario.nome else "Pesquisador"
+        inicial = nome_exibicao[0].upper()
 
-        # --- CONFIGURAÇÃO VISUAL (CSS PADRÃO) ---
+        # 2. CSS COMPLETO E PADRONIZADO (Identidade Visual SIVEAUTO)
         st.markdown("""
             <style>
-                /* Remove margens padrão */
-                .block-container {
-                    padding-top: 1rem !important;
-                    padding-bottom: 0rem !important;
-                    max-width: 100% !important;
-                }
-                #MainMenu, header, footer { display: none !important; }
-                [data-testid="collapsedControl"] { display: none !important; }
-
-                /* Fundo Geral - Cinza Escuro */
-                [data-testid="stAppViewContainer"] {
-                    background-color: #C0C0C0 !important;
-                    overflow-x: hidden !important;
-                }
-
-                /* Zoom Fixo */
-                body { zoom: 0.75; }
-
-                /* --- SIDEBAR FIXA (ESQUERDA) --- */
+                /* Layout Global e Zoom */
+                .block-container { padding-top: 2rem !important; max-width: 100% !important; }
+                [data-testid="stAppViewContainer"] { background-color: #C0C0C0 !important; }
+                body { zoom: 0.75; overflow-x: hidden; }
+                
+                /* Sidebar Cinza Lateral */
                 [data-testid="stVerticalBlock"] > [style*="flex-direction: row"] > [data-testid="stColumn"]:first-child {
-                    background-color: #D3D3D3 !important;
-                    border-right: 1px solid #999;
-                    padding: 20px !important;
-                    min-height: 100vh !important;
-                    box-shadow: 2px 0 5px rgba(0,0,0,0.15);
-                }
-
-                /* Avatar */
-                .avatar-circle {
-                    width: 70px; height: 70px; background-color: #FF8C00; color: white;
-                    border-radius: 50%; text-align: center; line-height: 70px;
-                    font-size: 28px; font-weight: bold; margin: 20px auto 10px auto;
-                    border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                }
-
-                /* Botões Laterais */
-                .stButton button { 
-                    width: 100%; border-radius: 8px; font-weight: bold; 
-                    border: 1px solid #bbb;
-                }
-
-                /* Formulários Brancos */
-                div[data-testid="stForm"], div[data-testid="stVerticalBlock"] > [style*="flex-direction: column"] > div[data-testid="stVerticalBlock"] {
-                    background-color: #FFFFFF;
-                    border-radius: 12px;
-                    padding: 15px;
-                    /* border: 1px solid #aaa; removido para evitar bordas duplas em containers internos */
+                    background-color: #D3D3D3 !important; border-right: 1px solid #999;
+                    padding: 20px !important; min-height: 100vh !important;
+                    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
                 }
                 
-                /* Inputs compactos */
-                .stSelectbox, .stNumberInput, .stTextInput { margin-bottom: -15px !important; }
+                /* Avatar Circular */
+                .avatar-circle {
+                    width: 80px; height: 80px; background-color: #FF8C00; color: white;
+                    border-radius: 50%; text-align: center; line-height: 80px; font-size: 32px;
+                    font-weight: bold; margin: 0 auto 15px auto; border: 4px solid white;
+                }
+                
+                /* Estilização de Forms e Dataframes */
+                div[data-testid="stForm"], .stDataFrame {
+                    background-color: #FFFFFF; border-radius: 12px; padding: 25px;
+                    border: 1px solid #aaa; box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+                    margin-bottom: 20px;
+                }
+                
+                /* Ajuste de visibilidade de inputs */
+                div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, input {
+                    background-color: #FFFFFF !important; color: #333 !important;
+                }
+                
+                /* Botões de Ação */
+                .stButton button { width: 100%; border-radius: 8px; font-weight: bold; height: 45px; }
             </style>
         """, unsafe_allow_html=True)
 
-        # --- ESTRUTURA: SIDEBAR (1) | CONTEÚDO (5) ---
-        col_sidebar, col_content = st.columns([1, 5], gap="medium")
+        # 3. DIVISÃO DE COLUNAS (Menu | Conteúdo)
+        col_sidebar, col_content = st.columns([1, 5], gap="small")
 
-        # --- SIDEBAR FIXA ---
         with col_sidebar:
             st.markdown(f"<div class='avatar-circle'>{inicial}</div>", unsafe_allow_html=True)
-            st.markdown(f"<h3 style='text-align:center; margin:0;'>{usuario.nome}</h3>", unsafe_allow_html=True)
-            st.markdown(f"<p style='text-align:center; color:#555; font-size:0.9rem;'>PESQUISADOR</p>", unsafe_allow_html=True)
-            st.markdown("---")
+            st.markdown(f"<h3 style='text-align:center; margin:0;'>{nome_exibicao}</h3>", unsafe_allow_html=True)
+            st.markdown(f"<p style='text-align:center; color:#555; font-size:0.9rem;'>PESQUISADOR</p><hr>", unsafe_allow_html=True)
             
             if st.button("📋 Nova Coleta", use_container_width=True):
-                st.session_state['aba_pesquisador'] = 'nova_coleta'
-                st.rerun()
+                st.session_state['aba_pesquisador'] = 'nova_coleta'; st.rerun()
                 
-            if st.button("🕒 Minhas Coletas", use_container_width=True):
-                st.session_state['aba_pesquisador'] = 'historico'
-                st.rerun()
+            if st.button("🕒 Histórico", use_container_width=True):
+                st.session_state['aba_pesquisador'] = 'historico'; st.rerun()
             
-            st.markdown("<br>"*10, unsafe_allow_html=True) # Espaçador inferior
+            st.markdown("<br>"*5, unsafe_allow_html=True)
             if st.button("🚪 Sair", type="primary", use_container_width=True):
-                del st.session_state['usuario_ativo']
-                st.rerun()
+                st.session_state.clear(); st.rerun()
 
-        # --- CONTEÚDO PRINCIPAL ---
+        # --- ÁREA DE CONTEÚDO ---
         with col_content:
-            if st.session_state['aba_pesquisador'] == 'nova_coleta':
-                ResearcherView.render_formulario(usuario)
-            else:
-                ResearcherView.render_historico(usuario)
-
-
-    @staticmethod
-    def render_formulario(usuario):
-        st.markdown("### 📝 Registro de Preços")
-        
-        # Centraliza o formulário na área de conteúdo
-        _, col_centro, _ = st.columns([0.2, 4, 0.2])
-
-        with col_centro:
             conn = DatabaseService.get_connection()
-            try:
-                # Query com Versão
-                df_v = pd.read_sql_query("SELECT id, marca, modelo, versao, ano FROM veiculos ORDER BY marca", conn)
+            
+            if st.session_state['aba_pesquisador'] == 'nova_coleta':
+                st.markdown("### 📝 Registro de Coleta de Campo")
                 
-                # Card Branco (Estilizado pelo CSS global ou container)
-                with st.container(border=True):
-                    st.markdown("##### 🚗 Seleção do Veículo")
-                    
-                    # Filtros em Cascata
-                    c1, c2 = st.columns(2)
-                    marcas = sorted(df_v['marca'].unique())
-                    marca = c1.selectbox("Marca:", options=marcas, index=None, placeholder="Selecione...")
-                    
-                    modelos = []
-                    if marca:
-                        modelos = df_v[df_v['marca'] == marca]['modelo'].unique()
-                    modelo = c2.selectbox("Modelo:", options=sorted(modelos), index=None, placeholder="Selecione...", disabled=not marca)
+                # BUSCA REATIVA DE VEÍCULOS E LOJAS
+                df_v = pd.read_sql("SELECT id, marca, modelo, versao, ano FROM veiculos", conn)
+                df_v['marca'] = df_v['marca'].astype(str).str.strip()
+                
+                df_l = pd.read_sql("SELECT id, nome FROM lojas WHERE status = 'APROVADA'", conn)
 
-                    c3, c4 = st.columns(2)
-                    versoes = []
-                    if modelo:
-                        versoes = df_v[(df_v['marca'] == marca) & (df_v['modelo'] == modelo)]['versao'].unique()
-                    versao = c3.selectbox("Versão:", options=sorted(versoes), index=None, placeholder="Selecione...", disabled=not modelo)
-
-                    v_id_sel = None
-                    anos = []
-                    if versao:
-                        anos = df_v[(df_v['marca'] == marca) & (df_v['modelo'] == modelo) & (df_v['versao'] == versao)]['ano'].unique()
-                    ano_sel = c4.selectbox("Ano:", options=sorted(anos, reverse=True), index=None, placeholder="Ano...", disabled=not versao)
+                if df_v.empty:
+                    st.info("ℹ️ O catálogo de veículos está vazio. O Gerente precisa cadastrar modelos primeiro.")
+                elif df_l.empty:
+                    st.warning("⚠️ Nenhuma loja aprovada disponível. O Coordenador precisa aprovar lojas primeiro.")
+                else:
+                    # CENTRALIZAÇÃO PROPORCIONAL
+                    _, central_col, _ = st.columns([0.1, 4, 0.1])
                     
-                    if ano_sel:
-                         v_id_sel = df_v[
-                            (df_v['marca'] == marca) & 
-                            (df_v['modelo'] == modelo) & 
-                            (df_v['versao'] == versao) & 
-                            (df_v['ano'] == ano_sel)
-                        ]['id'].values[0]
+                    with central_col:
+                        # --- PARTE A: SELEÇÃO (Container nativo remove a barra branca) ---
+                        with st.container(border=True):
+                            st.markdown("##### 🚗 Selecione o Veículo no Catálogo")
+                            c1, c2 = st.columns(2)
+                            ma = c1.selectbox("Marca", options=sorted(df_v['marca'].unique()), index=None, placeholder="Escolha a Marca...", key='sel_marca')
+                            
+                            modelos_filt = sorted(df_v[df_v['marca'] == ma]['modelo'].unique()) if ma else []
+                            mo = c2.selectbox("Modelo", options=modelos_filt, index=None, placeholder="Selecione o Modelo...", disabled=not ma, key='sel_modelo')
+                            
+                            c3, c4 = st.columns(2)
+                            versoes_filt = sorted(df_v[(df_v['marca'] == ma) & (df_v['modelo'] == mo)]['versao'].unique()) if mo else []
+                            ve = c3.selectbox("Versão", options=versoes_filt, index=None, placeholder="Selecione a Versão...", disabled=not mo, key='sel_versao')
+                            
+                            anos_filt = sorted(df_v[(df_v['marca'] == ma) & (df_v['modelo'] == mo) & (df_v['versao'] == ve)]['ano'].unique(), reverse=True) if ve else []
+                            an = c4.selectbox("Ano", options=anos_filt, index=None, placeholder="Ano...", disabled=not ve, key='sel_ano')
 
-                    st.markdown("---")
-                    
-                    # Formulário de Coleta
-                    with st.form("form_coleta", clear_on_submit=True):
-                        st.markdown("##### 💰 Oferta Encontrada")
-                        c_p, c_l = st.columns([1, 1.5])
-                        
-                        valor = c_p.number_input("Valor (R$):", min_value=0.0, step=100.0, format="%.2f")
-                        if valor > 0:
-                            valor_fmt = f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                            st.caption(f"Leitura: **{valor_fmt}**")
-                        
-                        loja = c_l.text_input("Loja / Concessionária:", placeholder="Ex: Central Veículos")
-                        link = st.text_input("Link ou Foto (Opcional):")
-                        
-                        st.markdown("<br>", unsafe_allow_html=True)
-                        if st.form_submit_button("🚀 GRAVAR COLETA", type="primary", use_container_width=True):
-                            if v_id_sel and valor > 0 and loja:
-                                sucesso, msg = ResearcherView.salvar_coleta(v_id_sel, usuario.id, valor, loja, link)
-                                if sucesso:
-                                    st.success(msg)
-                                    time.sleep(1.5)
+                        # --- PARTE B: FORMULÁRIO DE DADOS ---
+                        with st.form("form_coleta_final", clear_on_submit=True):
+                            st.markdown("##### 💰 Detalhes da Oferta Encontrada")
+                            cv, cl = st.columns([1, 1.5])
+                            valor = cv.number_input("Preço Encontrado (R$)", min_value=0.0, step=100.0, key='num_preco')
+                            loja_nome = cl.selectbox("Loja Visitada (Rede Aprovada)", options=df_l['nome'].unique(), key='sel_loja_coleta')
+
+                            if st.form_submit_button("🚀 GRAVAR COLETA NO BANCO", type="primary"):
+                                if ma and mo and ve and an and valor > 0:
+                                    # Captura ID
+                                    match = df_v[(df_v['marca']==ma)&(df_v['modelo']==mo)&(df_v['versao']==ve)&(df_v['ano']==an)]
+                                    v_id = match['id'].values[0]
+                                    l_id = df_l[df_l['nome'] == loja_nome]['id'].values[0]
+                                    
+                                    conn.execute("""
+                                        INSERT INTO coletas (veiculo_id, usuario_id, loja_id, valor_encontrado, local_loja)
+                                        VALUES (?, ?, ?, ?, ?)
+                                    """, (int(v_id), usuario.id, int(l_id), valor, loja_nome))
+                                    conn.commit()
+                                    
+                                    st.success("✅ Coleta registrada com sucesso!")
+                                    time.sleep(1)
+                                    # A mágica da limpeza: limpa o state e reinicia o script
                                     st.rerun()
                                 else:
-                                    st.warning(msg)
-                            else:
-                                st.error("⚠️ Preencha os campos obrigatórios.")
-            finally:
-                conn.close()
-
-    @staticmethod
-    def render_historico(usuario):
-        st.markdown("### 🕒 Meu Histórico de Coletas")
-        
-        # Container Branco para a Tabela
-        with st.container(border=True):
-            conn = DatabaseService.get_connection()
-            try:
-                query = """
-                    SELECT c.id, v.marca, v.modelo, v.versao, v.ano, c.valor_encontrado, c.local_loja, c.data_coleta
-                    FROM coletas c
-                    JOIN veiculos v ON c.veiculo_id = v.id
-                    WHERE c.usuario_id = ?
-                    ORDER BY c.data_coleta DESC
-                """
-                df = pd.read_sql_query(query, conn, params=(usuario.id,))
-                
-                if df.empty:
-                    st.info("Nenhuma coleta registrada até o momento.")
-                else:
-                    h1, h2, h3, h4 = st.columns([2.5, 1, 1.5, 1])
-                    h1.caption("**Veículo / Versão**")
-                    h2.caption("**Valor**")
-                    h3.caption("**Loja**")
-                    h4.caption("**Data**")
-                    st.markdown("---")
-
-                    for _, row in df.iterrows():
-                        c1, c2, c3, c4 = st.columns([2.5, 1, 1.5, 1])
-                        c1.write(f"{row['marca']} {row['modelo']} {row['versao']} ({row['ano']})")
-                        
-                        valor_fmt = f"R$ {row['valor_encontrado']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                        c2.write(f"**{valor_fmt}**")
-                        c3.write(row['local_loja'])
-                        
-                        data_br = pd.to_datetime(row['data_coleta']).strftime('%d/%m %H:%M')
-                        c4.write(data_br)
-                        st.markdown("<hr style='margin: 2px 0; border-top: 1px solid #EEE;'>", unsafe_allow_html=True)
-            finally:
-                conn.close()
-
-    @staticmethod
-    def salvar_coleta(v_id, u_id, valor, loja, foto):
-        conn = DatabaseService.get_connection()
-        cursor = conn.cursor()
-        
-        # Trava PS-17 (Duplicidade no dia)
-        cursor.execute("""
-            SELECT id FROM coletas 
-            WHERE veiculo_id = ? 
-            AND usuario_id = ? 
-            AND local_loja = ? 
-            AND date(data_coleta) = date('now')
-        """, (v_id, u_id, loja))
-        
-        if cursor.fetchone():
-            conn.close()
-            return False, "⚠️ Duplicidade! Este veículo já foi coletado nesta loja hoje."
-        
-        try:
-            cursor.execute("""
-                INSERT INTO coletas (veiculo_id, usuario_id, valor_encontrado, local_loja, foto_url) 
-                VALUES (?, ?, ?, ?, ?)
-            """, (v_id, u_id, valor, loja, foto))
-            conn.commit()
-            return True, "✅ Coleta realizada com sucesso!"
-        except Exception as e:
-            return False, f"❌ Erro técnico: {e}"
-        finally:
+                                    st.error("⚠️ Por favor, preencha todos os campos antes de gravar.")
+            else:
+                # HISTÓRICO
+                st.markdown("### 🕒 Histórico Recente")
+                df_h = pd.read_sql("""
+                    SELECT v.marca, v.modelo, v.versao, c.local_loja as loja, c.valor_encontrado as preco, c.data_coleta
+                    FROM coletas c JOIN veiculos v ON c.veiculo_id = v.id
+                    WHERE c.usuario_id = ? ORDER BY c.data_coleta DESC
+                """, conn, params=(usuario.id,))
+                st.dataframe(df_h, use_container_width=True, hide_index=True,
+                            column_config={"preco": st.column_config.NumberColumn("Valor", format="R$ %.2f")})
+            
             conn.close()
